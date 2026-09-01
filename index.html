@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Consulta Documental — Búsqueda de documentos por palabra clave" />
+  <title>Consulta Documental</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- ============================================================
+       LOADER GLOBAL
+  ============================================================ -->
+  <div id="loader-global" class="loader-global" aria-hidden="true" role="status">
+    <div class="loader-global__contenido">
+      <div class="loader-global__spinner" aria-hidden="true"></div>
+      <p id="loader-text" class="loader-global__texto">Cargando...</p>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       ZONA DE TOASTS / NOTIFICACIONES
+  ============================================================ -->
+  <div
+    id="contenedor-mensajes"
+    class="contenedor-mensajes"
+    aria-live="polite"
+    aria-atomic="false"
+    role="region"
+    aria-label="Notificaciones del sistema"
+  ></div>
+
+  <!-- ============================================================
+       ENCABEZADO
+  ============================================================ -->
+  <header class="encabezado" role="banner">
+    <div class="encabezado__contenedor">
+      <div class="encabezado__identidad">
+        <span class="encabezado__titulo-sistema">Consulta Documental</span>
+      </div>
+      <div class="encabezado__meta">
+        <span class="encabezado__version">v0.1 — Fase 1</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============================================================
+       CONTENIDO PRINCIPAL
+  ============================================================ -->
+  <main class="contenido-principal" role="main">
+    <div class="contenido-principal__contenedor">
+
+      <!-- ==========================================================
+           BARRA DE BÚSQUEDA Y FILTRO
+      ========================================================== -->
+      <section
+        id="seccion-busqueda"
+        class="seccion seccion--busqueda"
+        role="region"
+        aria-label="Búsqueda y filtro de documentos"
+      >
+        <div class="barra-busqueda">
+
+          <div class="campo campo--busqueda">
+            <label for="input-busqueda" class="campo__label">Buscar por nombre del documento</label>
+            <div class="campo__input-wrapper">
+              <svg class="campo__icono-busqueda" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+              <input
+                id="input-busqueda"
+                type="search"
+                class="campo__input campo__input--busqueda"
+                placeholder="Ej. Procedimiento de compras..."
+                autocomplete="off"
+                aria-controls="tbody-documentos"
+              />
+            </div>
+          </div>
+
+          <div class="campo campo--proceso">
+            <label for="select-proceso" class="campo__label">Proceso</label>
+            <div class="campo__select-wrapper">
+              <select
+                id="select-proceso"
+                class="campo__input campo__input--select"
+              >
+                <option value="">Todos los procesos</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="campo campo--resultados">
+            <span class="campo__label campo__label--espaciador" aria-hidden="true">&nbsp;</span>
+            <div class="barra-busqueda__contador" aria-live="polite" aria-atomic="true">
+              <span class="barra-busqueda__contador-etiqueta">Resultados:</span>
+              <span id="contador-resultados" class="barra-busqueda__contador-valor" aria-label="Total de documentos encontrados">0</span>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ==========================================================
+           TABLA DE RESULTADOS
+      ========================================================== -->
+      <section id="seccion-tabla" class="seccion seccion--tabla" role="region" aria-labelledby="titulo-tabla">
+        <h2 id="titulo-tabla" class="sr-only">Resultados de la búsqueda</h2>
+
+        <div class="tabla-wrapper" role="region" aria-label="Documentos encontrados" tabindex="0">
+          <table id="tabla-documentos" class="tabla" aria-describedby="titulo-tabla">
+
+            <thead class="tabla__cabecera">
+              <tr>
+                <th class="tabla__th tabla__th--codigo" scope="col">Código</th>
+                <th class="tabla__th tabla__th--nombre" scope="col">Nombre del documento</th>
+                <th class="tabla__th tabla__th--tipo" scope="col">Tipo</th>
+                <th class="tabla__th tabla__th--proceso" scope="col">Proceso</th>
+                <th class="tabla__th tabla__th--estado" scope="col">Estado</th>
+                <th class="tabla__th tabla__th--acciones" scope="col">
+                  <span class="sr-only">Acciones</span>
+                </th>
+              </tr>
+            </thead>
+
+            <tbody id="tbody-documentos" class="tabla__cuerpo">
+
+              <!-- Estado: cargando -->
+              <tr id="fila-cargando" class="tabla__fila-estado tabla__fila-estado--oculta">
+                <td colspan="6" class="tabla__celda-estado">
+                  <div class="estado-tabla">
+                    <div class="skeleton-loader" aria-label="Cargando documentos...">
+                      <div class="skeleton-loader__linea"></div>
+                      <div class="skeleton-loader__linea skeleton-loader__linea--corta"></div>
+                      <div class="skeleton-loader__linea"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Estado: sin datos (error de carga) -->
+              <tr id="fila-sin-datos" class="tabla__fila-estado tabla__fila-estado--oculta">
+                <td colspan="6" class="tabla__celda-estado">
+                  <div class="estado-tabla">
+                    <svg class="estado-tabla__icono" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <p class="estado-tabla__mensaje">No se pudieron cargar los documentos. Intenta nuevamente más tarde.</p>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Estado: sin resultados de búsqueda/filtro -->
+              <tr id="fila-sin-resultados" class="tabla__fila-estado tabla__fila-estado--oculta">
+                <td colspan="6" class="tabla__celda-estado">
+                  <div class="estado-tabla">
+                    <svg class="estado-tabla__icono" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <p class="estado-tabla__mensaje">No se encontraron documentos con ese criterio de búsqueda.</p>
+                  </div>
+                </td>
+              </tr>
+
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ============================================================
+       PIE DE PÁGINA
+  ============================================================ -->
+  <footer class="pie-pagina" role="contentinfo">
+    <div class="pie-pagina__contenedor">
+      <p class="pie-pagina__texto">Consulta Documental — Fase 3 (descarga de documentos)</p>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       PANEL DE DETALLE — OVERLAY + ASIDE DESLIZANTE
+  ============================================================ -->
+  <div id="detalle-overlay" class="detalle-overlay" aria-hidden="true"></div>
+
+  <aside
+    id="panel-detalle"
+    class="panel-detalle"
+    aria-hidden="true"
+    aria-labelledby="panel-detalle-titulo"
+    role="dialog"
+    aria-modal="true"
+  >
+    <header class="panel-detalle__header">
+      <div class="panel-detalle__encabezado-texto">
+        <h2 id="panel-detalle-titulo" class="panel-detalle__titulo"></h2>
+        <p id="panel-detalle-codigo" class="panel-detalle__codigo"></p>
+      </div>
+      <button id="btn-cerrar-panel" class="panel-detalle__btn-cerrar" type="button" aria-label="Cerrar panel de detalle">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </header>
+
+    <div class="panel-detalle__cuerpo">
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Tipo</span>
+        <span id="detalle-type" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Proceso</span>
+        <span id="detalle-process" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Estado</span>
+        <span id="detalle-status" class="badge-estado"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Versión</span>
+        <span id="detalle-version" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Fecha de emisión</span>
+        <span id="detalle-issueDate" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Fecha de aprobación</span>
+        <span id="detalle-approvalDate" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Responsable</span>
+        <span id="detalle-owner" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Usuarios o áreas aplicables</span>
+        <span id="detalle-applicableAreas" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Tiempo de retención</span>
+        <span id="detalle-retentionTime" class="panel-detalle__valor"></span>
+      </div>
+    </div>
+
+    <footer class="panel-detalle__footer">
+      <button id="btn-descargar-panel" class="btn btn--primario" type="button" data-action="download">
+        Descargar
+      </button>
+    </footer>
+  </aside>
+
+  <script src="utils.js"></script>
+  <script src="main.js"></script>
+
+</body>
+</html>
