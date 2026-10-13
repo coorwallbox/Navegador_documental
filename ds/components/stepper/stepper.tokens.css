@@ -1,0 +1,29 @@
+/**
+ * Tokens de componente — Stepper (docs/05_BACKEND.md §1.3).
+ * Compartidos por <ds-stepper> y <ds-step> (ver stepper.core.js — viven en
+ * un mismo archivo/carpeta a propósito, son un par inseparable).
+ *
+ * Capa ESTRUCTURAL — var() sobre tokens/semantic.css o primitive.css, salvo
+ * 3 valores propios del componente sin equivalente en la escala compartida
+ * (mismo criterio que --toast-max-width de la Fase 10):
+ * --stepper-circle-size (diámetro decorativo, no es un --target-size-* de
+ * accesibilidad: el header completo es el objetivo interactivo, no el
+ * círculo) y --stepper-indent/--stepper-connector-left (geometría del
+ * conector vertical, ajustada a ojo contra el diseño original — no hay
+ * fórmula, son constantes visuales de esa pieza).
+ */
+:root {
+  --stepper-circle-size: 36px;
+  --stepper-indent: 48px;
+  --stepper-connector-width: var(--space-2);   /* 8px */
+  --stepper-connector-left: 14px;
+  --stepper-connector-bottom: var(--space-1);  /* 4px */
+
+  --stepper-header-padding: var(--spacing-inline-sm);
+  --stepper-header-gap: var(--spacing-inline-md);
+
+  --stepper-panel-gap: var(--spacing-stack-md);
+  --stepper-panel-padding-block-start: var(--spacing-stack-sm);
+  --stepper-panel-padding-inline: var(--spacing-inline-xs);
+  --stepper-panel-padding-block-end: var(--spacing-section-sm);
+}

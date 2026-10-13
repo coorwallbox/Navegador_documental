@@ -6,6 +6,12 @@
   <meta name="description" content="Cargue de documentos — Solicitud de documento nuevo, nueva versión, anexo o variante" />
   <title>Cargue de documentos</title>
   <link rel="icon" type="image/svg+xml" href="img/favicon.svg" />
+  <!-- Design_System_Core (copia adaptada, ver docs/00_README.md): tokens base, estilo y stepper -->
+  <link rel="stylesheet" href="ds/tokens/primitive.css" />
+  <link rel="stylesheet" href="ds/tokens/semantic.css" />
+  <link rel="stylesheet" href="ds/tokens/accessibility.css" />
+  <link rel="stylesheet" href="ds/styles/loscoches.css" />
+  <link rel="stylesheet" href="ds/components/stepper/stepper.tokens.css" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -67,9 +73,12 @@
         </header>
 
         <form id="form-cargue" class="form-cargue" novalidate>
-
+          <!-- Pasos fijos (el stepper no admite agregar o quitar pasos): dentro de cada uno, las secciones
+               se muestran u ocultan según el tipo de solicitud (upload.js) -->
+          <ds-stepper id="cargue-pasos" class="form-cargue__pasos">
+          <ds-step label="Tipo de cargue">
           <fieldset class="panel-detalle__seccion form-cargue__grupo">
-            <legend class="panel-detalle__seccion-titulo">Tipo de cargue</legend>
+            <legend class="sr-only">Tipo de cargue</legend>
             <div class="opciones-cargue">
               <label class="opcion-cargue">
                 <input type="radio" name="requestType" value="NEW" checked />
@@ -108,7 +117,12 @@
               </label>
             </div>
           </fieldset>
+            <div class="form-cargue__paso-acciones">
+              <button class="btn btn--primario" type="button" data-step-next>Siguiente</button>
+            </div>
+          </ds-step>
 
+          <ds-step id="cargue-paso-documento" label="Documento">
           <fieldset id="cargue-seccion-existente" class="panel-detalle__seccion form-cargue__grupo" hidden>
             <legend id="cargue-leyenda-existente" class="panel-detalle__seccion-titulo">Documento existente</legend>
             <div class="campo">
@@ -173,9 +187,14 @@
               <p id="cargue-fundamento-error" class="campo__error" hidden></p>
             </div>
           </fieldset>
+            <div class="form-cargue__paso-acciones">
+              <button class="btn btn--primario" type="button" data-step-next>Siguiente</button>
+            </div>
+          </ds-step>
 
+          <ds-step id="cargue-paso-cambio" label="Cambio y responsables">
           <fieldset class="panel-detalle__seccion form-cargue__grupo">
-            <legend id="cargue-leyenda-cambio" class="panel-detalle__seccion-titulo">Cambio y responsables</legend>
+            <legend id="cargue-leyenda-cambio" class="sr-only">Cambio y responsables</legend>
             <div class="campo">
               <label id="cargue-descripcion-etiqueta" for="cargue-descripcion" class="campo__label">Motivo de creación</label>
               <textarea id="cargue-descripcion" class="campo__input campo__input--area" rows="3"></textarea>
@@ -199,9 +218,14 @@
               <p id="cargue-observaciones-error" class="campo__error" hidden></p>
             </div>
           </fieldset>
+            <div class="form-cargue__paso-acciones">
+              <button class="btn btn--primario" type="button" data-step-next>Siguiente</button>
+            </div>
+          </ds-step>
 
+          <ds-step label="Solicitante">
           <fieldset class="panel-detalle__seccion form-cargue__grupo">
-            <legend class="panel-detalle__seccion-titulo">Solicitante</legend>
+            <legend class="sr-only">Solicitante</legend>
             <div class="form-cargue__fila">
             <div class="campo">
               <label for="cargue-solicitante" class="campo__label">Nombre</label>
@@ -215,9 +239,14 @@
             </div>
             </div>
           </fieldset>
+            <div class="form-cargue__paso-acciones">
+              <button class="btn btn--primario" type="button" data-step-next>Siguiente</button>
+            </div>
+          </ds-step>
 
+          <ds-step id="cargue-paso-archivo" label="Archivo">
           <fieldset id="cargue-seccion-archivo" class="panel-detalle__seccion form-cargue__grupo">
-            <legend class="panel-detalle__seccion-titulo">Archivo</legend>
+            <legend class="sr-only">Archivo</legend>
             <div class="campo">
               <label for="cargue-archivo" class="campo__label">Archivo del documento</label>
               <input id="cargue-archivo" type="file" class="campo__input campo__input--archivo" aria-describedby="cargue-archivo-ayuda" />
@@ -225,6 +254,9 @@
               <p id="cargue-archivo-error" class="campo__error" hidden></p>
             </div>
           </fieldset>
+          <p id="cargue-nota-retiro" class="form-cargue__nota" hidden>El retiro no lleva archivo. Revisa los pasos anteriores y envía la solicitud.</p>
+          </ds-step>
+          </ds-stepper>
         </form>
 
         <div id="cargue-resultado" class="form-cargue" hidden>
@@ -253,12 +285,13 @@
     </div>
   </footer>
 
-  <!-- Orden obligatorio: configuración → configuración del cargue → catálogos → utilidades → datos demo → cargue -->
+  <!-- Orden obligatorio: configuración → configuración del cargue → catálogos → utilidades → datos demo → stepper → cargue -->
   <script src="config.js"></script>
   <script src="config-cargue.js"></script>
   <script src="catalog.js"></script>
   <script src="utils.js"></script>
   <script src="demo-data.js"></script>
+  <script src="ds/components/stepper/stepper.core.js"></script>
   <script src="upload.js"></script>
 
 </body>

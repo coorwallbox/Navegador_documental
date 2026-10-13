@@ -95,6 +95,11 @@ const Upload = (() => {
       btnSubmit:      $('btn-enviar-cargue'),
       btnAnother:     $('btn-otro-cargue'),
       form:           $('form-cargue'),
+      stepper:        $('cargue-pasos'),
+      steps:          Array.from(document.querySelectorAll('#cargue-pasos > ds-step')),
+      stepChange:     $('cargue-paso-cambio'),
+      stepFile:       $('cargue-paso-archivo'),
+      noteRetire:     $('cargue-nota-retiro'),
       result:         $('cargue-resultado'),
       resultText:     $('cargue-resultado-texto'),
       resultSummary:  $('cargue-resultado-resumen'),
@@ -161,6 +166,13 @@ const Upload = (() => {
     DOM.btnClear.addEventListener('click', () => _reset(TYPES.NEW, true));
     DOM.btnAnother.addEventListener('click', () => _reset(TYPES.NEW, true));
     DOM.form.addEventListener('submit', _handleSubmit);
+    // Stepper: se avanza solo si los campos del paso actual son válidos
+    DOM.stepper.addEventListener('stepper-before-next', (evento) => {
+      if (!_validate(DOM.steps[evento.detail.index])) evento.preventDefault();
+    });
+    DOM.form.querySelectorAll('[data-step-next]').forEach((btn) => btn.addEventListener('click', _nextStep));
+    // El stepper no avisa los cambios de paso: se observa el atributo state de cada paso
+    new MutationObserver(_syncStepActions).observe(DOM.stepper, { subtree: true, attributes: true, attributeFilter: ['state'] });
     DOM.form.querySelectorAll('input[name="requestType"]').forEach((radio) =>
       radio.addEventListener('change', _applyRequestType));
     DOM.inputDocument.addEventListener('input', _handleDocumentInput);
@@ -191,7 +203,39 @@ const Upload = (() => {
     DOM.btnAnother.hidden = true;
     DOM.form.querySelector(`input[name="requestType"][value="${requestType}"]`).checked = true;
     _applyRequestType();
+    DOM.stepper.reset();
+    _syncStepActions();
     if (focus) DOM.form.querySelector('input[name="requestType"]:checked').focus();
+  }
+
+  function _isLastStep() {
+    return DOM.stepper.currentIndex === DOM.steps.length - 1;
+  }
+
+  /**
+   * «Siguiente»: valida el paso actual (también si el siguiente ya se visitó, caso en que el stepper no valida),
+   * avanza y lleva el foco al primer campo del paso nuevo.
+   * @private
+   */
+  function _nextStep() {
+    const before = DOM.stepper.currentIndex;
+    if (!_validate(DOM.steps[before])) return;
+    DOM.stepper.next();
+    if (DOM.stepper.currentIndex !== before) _focusStep(DOM.steps[DOM.stepper.currentIndex]);
+  }
+
+  /** Foco en el primer campo visible y habilitado del paso (en radios, el marcado). @private */
+  function _focusStep(step) {
+    const fields = step.querySelectorAll('input:not([disabled]), select:not([disabled]), textarea:not([disabled])');
+    const visible = Array.from(fields).filter((el) => !el.closest('[hidden]') && (el.type !== 'radio' || el.checked));
+    if (visible.length) visible[0].focus();
+    else step.querySelector('[data-step-next]')?.focus();
+  }
+
+  /** «Enviar solicitud» solo aparece en el último paso. @private */
+  function _syncStepActions() {
+    if (!DOM.result.hidden) return;  // vista de resultado: la maneja _showResult
+    DOM.btnSubmit.hidden = !_isLastStep();
   }
 
   function _requestType() {
@@ -218,6 +262,9 @@ const Upload = (() => {
     }[type] || '';
     DOM.labelDescription.textContent = isNew ? 'Motivo de creación' : isRetire ? 'Motivo del retiro' : 'Descripción del cambio';
     DOM.legendChange.textContent = isRetire ? 'Motivo' : 'Cambio y responsables';
+    DOM.stepChange.setAttribute('label', DOM.legendChange.textContent);
+    DOM.stepFile.setAttribute('label', isRetire ? 'Confirmación' : 'Archivo');
+    DOM.noteRetire.hidden = !isRetire;
 
     // Retiro: sin datos del documento, cargos ni archivo (solo el documento elegido y el motivo)
     DOM.sectionDocument.hidden = isRetire;
@@ -425,8 +472,12 @@ const Upload = (() => {
      4. VALIDACIÓN
   ============================================================ */
 
-  /** Valida el formulario; marca los errores y devuelve true si es válido. @private */
-  function _validate() {
+  /**
+   * Valida el formulario; marca los errores y devuelve true si es válido.
+   * @param {Element} [scope] — un paso del stepper: solo se validan sus campos (al pulsar «Siguiente»)
+   * @private
+   */
+  function _validate(scope) {
     const type = _requestType();
     const errors = [];
     const required = (el, message) => { if (!el.disabled && !String(el.value).trim()) errors.push([el, message]); };
@@ -477,12 +528,17 @@ const Upload = (() => {
       }
     }
 
-    errors.forEach(([el, message]) => _showError(el, message));
-    if (errors.length) {
-      errors[0][0].focus();
-      Utils.Toast.warning(`Revisa ${errors.length === 1 ? 'el campo marcado' : `los ${errors.length} campos marcados`} antes de enviar.`);
+    const shown = scope ? errors.filter(([el]) => scope.contains(el)) : errors;
+    shown.forEach(([el, message]) => _showError(el, message));
+    if (shown.length) {
+      // Al enviar, el primer error puede estar en un paso anterior (ya visitado): se vuelve a ese paso
+      const stepIndex = DOM.steps.findIndex((step) => step.contains(shown[0][0]));
+      if (stepIndex !== -1 && stepIndex !== DOM.stepper.currentIndex) DOM.stepper.goTo(stepIndex);
+      shown[0][0].focus();
+      const fields = shown.length === 1 ? 'el campo marcado' : `los ${shown.length} campos marcados`;
+      Utils.Toast.warning(`Revisa ${fields} antes de ${scope ? 'continuar' : 'enviar'}.`);
     }
-    return errors.length === 0;
+    return shown.length === 0;
   }
 
   function _showError(el, message) {
@@ -517,6 +573,11 @@ const Upload = (() => {
 
   async function _handleSubmit(evento) {
     evento.preventDefault();
+    // Enter en un campo antes del último paso: avanza en vez de enviar
+    if (!_isLastStep()) {
+      _nextStep();
+      return;
+    }
     if (state.sending || !_validate()) return;
 
     state.sending = true;

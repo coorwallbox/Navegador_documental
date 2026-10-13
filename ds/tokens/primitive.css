@@ -1,0 +1,71 @@
+/**
+ * Tokens PRIMITIVE — únicos valores crudos (px/rem) de Spacing, Layout y Motion.
+ * Nada fuera de este archivo escribe un número sin token (docs/05_BACKEND.md §1.1).
+ * Fuente: docs/referencias/Sistema_Espaciado_UI_Metodologia_Maestra.md §1.2 (Spacing)
+ *         docs/referencias/Sistema_Maquetado_UI_Layout_System.md §4.1 / §19 (Layout)
+ * Motion no viene de ningún .md de referencia (ninguno lo cubre) — agregado en
+ * la auditoría de la Fase 6 al encontrar transiciones/transforms sin token en
+ * button.core.js (docs/05_BACKEND.md §10).
+ */
+:root {
+  /* Spacing — escala base 4/8px */
+  --space-0: 0;
+  --space-1: 0.25rem;  /* 4px */
+  --space-2: 0.5rem;   /* 8px */
+  --space-3: 0.75rem;  /* 12px */
+  --space-4: 1rem;     /* 16px */
+  --space-5: 1.5rem;   /* 24px */
+  --space-6: 2rem;     /* 32px */
+  --space-7: 2.5rem;   /* 40px */
+  --space-8: 3rem;     /* 48px */
+  --space-9: 4rem;     /* 64px */
+  --space-10: 5rem;    /* 80px */
+  --space-11: 6rem;    /* 96px */
+  --space-12: 8rem;    /* 128px */
+
+  /* Layout — containers */
+  --container-xs: 480px;
+  --container-sm: 640px;
+  --container-md: 768px;
+  --container-lg: 1024px;
+  --container-xl: 1280px;
+  --container-2xl: 1440px;
+  --container-fluid: 100%;
+
+  /* Layout — pila de apilamiento (z-index) */
+  --layer-base: 0;
+  --layer-sticky: 100;
+  --layer-dropdown: 200;
+  --layer-drawer: 300;
+  --layer-modal: 400;
+  --layer-toast: 500;
+
+  /* Motion — duración/easing de transición y transforms de interacción,
+     estructural (igual en los 3 estilos, no es parte de la capa visual) */
+  --motion-duration-fast: 150ms;
+  --motion-duration-slow: 250ms;  /* transición de layout (ej. colapso de un panel), no de feedback de interacción — agregada en la Fase 11 al portar Stepper */
+  --motion-easing-standard: ease;
+  --transform-hover-lift: translateY(-2px);
+  --transform-active-press: scale(.97);
+}
+
+/*
+ * Accesibilidad de movimiento: si la persona pidió menos movimiento en el
+ * sistema operativo, los transforms de interacción se anulan (la duración
+ * también baja a un valor casi nulo, no se elimina la transición completa
+ * para no romper que otras propiedades sigan animando color/sombra).
+ */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: 1ms;
+    --motion-duration-slow: 1ms;
+    --transform-hover-lift: none;
+    --transform-active-press: none;
+  }
+}
+
+/*
+ * Breakpoints de referencia (NO son custom properties — ver docs/05_BACKEND.md §5:
+ * var() no funciona dentro de la condición de un @media):
+ *   sm = 640px · md = 768px · lg = 1024px · xl = 1280px · 2xl = 1440px
+ */

@@ -1,0 +1,48 @@
+/**
+ * Estilo: Los Coches — adaptado de styles/minimalista-corporativo.css de
+ * Design_System_Core (Regla 3: copia adaptada, el original no se toca).
+ * Capa de tokens VISUALES: mismo set semántico que el original, con la paleta
+ * y la tipografía de la consulta (styles.css), para que el stepper se vea
+ * como el resto de la página. Solo lo carga cargue.html.
+ * Contraste: texto #2D3340 sobre blanco 12.7:1; texto suave #5F6878 5.6:1;
+ * acento #2854A6 7.2:1 (AA en todos).
+ */
+:root {
+  /* Color */
+  --color-bg: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-alt: #F8F9FB;
+  --color-border: #C9D1DD;
+  --color-text: #2D3340;
+  --color-text-muted: #5F6878;
+  --color-accent: #2854A6;
+  --color-accent-text: #FFFFFF;
+  --color-accent-surface: #E7EEFA;
+  --color-focus: #2854A6;
+
+  /* Tipografía (la de la consulta) */
+  --font-family-base: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-family-heading: var(--font-family-base);
+  --font-size-sm: 0.9375rem;
+  --font-size-md: 1rem;
+  --font-size-lg: 1.25rem;
+  --font-size-xl: 2rem;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 600;
+  --line-height-base: 1.5;
+
+  /* Radios */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* Sombras — planas, sutiles */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, .06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, .08);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, .12);
+
+  /* Glass — no aplica en este estilo */
+  --surface-blur: 0;
+}

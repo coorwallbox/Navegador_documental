@@ -1,0 +1,44 @@
+/**
+ * Tokens SEMANTIC — nombran relaciones, nunca un valor propio.
+ * Todo token de este archivo es un var() sobre primitive.css (docs/05_BACKEND.md §1.2).
+ * Requiere que primitive.css esté cargado antes en el documento.
+ */
+:root {
+  /* Spacing */
+  --spacing-inline-xs: var(--space-1);
+  --spacing-inline-sm: var(--space-2);
+  --spacing-inline-md: var(--space-4);
+
+  --spacing-stack-xs: var(--space-2);
+  --spacing-stack-sm: var(--space-3);
+  --spacing-stack-md: var(--space-4);
+
+  --spacing-group: var(--space-5);
+
+  --spacing-section-sm: var(--space-6);
+  --spacing-section-md: var(--space-8);
+  --spacing-section-lg: var(--space-9);
+
+  --spacing-page: var(--space-10);
+
+  /* Layout */
+  --layout-narrow: var(--container-sm);
+  --layout-standard: var(--container-lg);
+  --layout-wide: var(--container-2xl);
+  --layout-fluid: var(--container-fluid);
+
+  /* Grid gutter — mobile-first; se redefine dentro de @media, nunca en la condición */
+  --grid-gutter: var(--space-4); /* 16px, mobile */
+}
+
+@media (min-width: 768px) {
+  :root {
+    --grid-gutter: var(--space-5); /* 24px, tablet/desktop */
+  }
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --grid-gutter: var(--space-6); /* 32px, desktop grande */
+  }
+}

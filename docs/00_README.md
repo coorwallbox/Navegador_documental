@@ -61,6 +61,7 @@ Consulta_Documental/
 │   ├── 03_TRD.md         # contratos de los flujos F1, F2 y F3
 │   ├── 06_IMPLEMENTATION.md
 │   └── 07_PROGRESO_RESUMEN.md
+├── ds/                   # copiados/adaptados de Design_System_Core (Regla 3): tokens base, estilo «loscoches» y stepper; solo los carga cargue.html
 ├── img/                  # logo en negativo y favicon (manual de marca Los Coches)
 ├── tools/
 │   └── build_deploy.py   # arma dist/ con la configuración real (config.local.json)
@@ -78,7 +79,7 @@ Consulta_Documental/
 └── utils.js
 ```
 
-**Orden de carga obligatorio:** en `index.html`, `config.js` → `catalog.js` → `utils.js` → `demo-data.js` → `main.js`; en `cargue.html`, `config.js` → `config-cargue.js` → `catalog.js` → `utils.js` → `demo-data.js` → `upload.js` (`Utils` usa `Catalog`; `App` y `Upload` usan `Utils` y `Catalog`; la carga del listado es `Utils.Data`, compartida).
+**Orden de carga obligatorio:** en `index.html`, `config.js` → `catalog.js` → `utils.js` → `demo-data.js` → `main.js`; en `cargue.html`, `config.js` → `config-cargue.js` → `catalog.js` → `utils.js` → `demo-data.js` → `ds/components/stepper/stepper.core.js` → `upload.js` (`Utils` usa `Catalog`; `App` y `Upload` usan `Utils` y `Catalog`; la carga del listado es `Utils.Data`, compartida).
 
 ## Despliegue
 
@@ -98,7 +99,7 @@ Sin URL configurada (el `config.js` del repositorio), la consulta funciona en mo
 - Tabla de resultados: Código, Nombre del documento, Tipo, Proceso, Versión, Empresa, Estado y acciones («Ver más», «Abrir»).
 - «Ver más» → panel de detalle deslizante (overlay + aside) con 6 secciones: Identificación (tipo, nivel documental, proceso, banda, empresa), Vigencia (estado, versión, fecha de vigencia, fecha límite de revisión — marcada «Vencida» si pasó), Responsables, Retención (tiempo, disposición final, fundamento), Documentos relacionados (documento principal, anexos y variantes por empresa, navegables dentro del panel) y Control de cambios / Observaciones.
 - Botón del archivo (fila y panel), según la extensión de UBICACIÓN: **PDF → «Abrir»** en una pestaña nueva; **cualquier otro formato → «Descargar»** (en SharePoint se agrega `?download=1`; aviso de copia no controlada); sin extensión → «Abrir». Solo VIGENTE; aviso si un vigente no tiene UBICACIÓN. En modo demo la acción se simula.
-- **Cargue de documentos — página independiente `cargue.html`** (`upload.js`; la consulta no la muestra ni la enlaza): un líder de proceso envía una solicitud de documento nuevo, nueva versión, anexo, variante por empresa o retiro (sin archivo; al aprobarse queda ELIMINADO); elige el documento existente con un buscador por código o nombre (sin OBSOLETO ni ELIMINADO) y sus datos se precargan; vista previa del código (provisional: lo confirma SG al aprobar); retención obligatoria para formatos RG; validaciones (obligatorios, años 0–100, correo y dominio, archivo pdf/docx/xlsx/pptx de hasta 20 MB). La solicitud va al flujo F2 y SG la aprueba en F3 antes de publicar (contratos en `03_TRD.md`). En modo demo el envío se simula con un número de solicitud.
+- **Cargue de documentos — página independiente `cargue.html`** (`upload.js`; la consulta no la muestra ni la enlaza): formulario en 5 pasos con el stepper de Design_System_Core (tipo de cargue, documento, cambio y responsables, solicitante, archivo; cada paso se valida antes de avanzar y «Enviar solicitud» aparece en el último); un líder de proceso envía una solicitud de documento nuevo, nueva versión, anexo, variante por empresa o retiro (sin archivo; al aprobarse queda ELIMINADO); elige el documento existente con un buscador por código o nombre (sin OBSOLETO ni ELIMINADO) y sus datos se precargan; vista previa del código (provisional: lo confirma SG al aprobar); retención obligatoria para formatos RG; validaciones (obligatorios, años 0–100, correo y dominio, archivo pdf/docx/xlsx/pptx de hasta 20 MB). La solicitud va al flujo F2 y SG la aprueba en F3 antes de publicar (contratos en `03_TRD.md`). En modo demo el envío se simula con un número de solicitud.
 - Modo demo (datos de ejemplo embebidos) para desarrollar sin depender de Power Automate.
 - Acceso libre, sin selección de actor/rol.
 

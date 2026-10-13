@@ -973,6 +973,16 @@ body.sin-scroll { overflow: hidden; }
 .form-cargue__grupo:last-of-type { border-bottom: none; }
 .form-cargue__grupo > legend { float: left; width: 100%; margin-bottom: var(--espacio-xs); }
 .form-cargue__grupo > legend + * { clear: both; }
+/* Leyenda que repite el título del paso: solo para lectores de pantalla */
+.form-cargue__grupo > legend.sr-only { float: none; width: 1px; margin: -1px; }
+
+/* --- Stepper (ds-stepper de Design_System_Core, tokens en ds/) --- */
+.form-cargue__pasos ds-step:not(:last-child) { margin-bottom: var(--espacio-xs); }
+.form-cargue__paso-acciones {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--espacio-sm);
+}
 
 .form-cargue__fila {
   display: grid;

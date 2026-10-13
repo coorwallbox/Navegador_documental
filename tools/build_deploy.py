@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
 APP_FILES = ['index.html', 'cargue.html', 'styles.css', 'catalog.js', 'utils.js', 'demo-data.js', 'upload.js', 'main.js']
-APP_DIRS = ['img']
+APP_DIRS = ['img', 'ds']
 LOCAL_HOSTS = {'localhost', '127.0.0.1'}
 
 
