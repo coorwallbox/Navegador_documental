@@ -3,7 +3,7 @@ tecnologia: Web
 tipo: entregable
 proyecto: Consulta_Documental
 estado: pendiente
-estado_resumen: "Fase 5 pendiente (integración real con Power Automate)"
+estado_resumen: "Fase 6 pendiente (modelo de datos de la propuesta del listado maestro)"
 stack: "HTML + CSS + JS vainilla"
 descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
 aliases: [Consulta_Documental]
@@ -50,6 +50,7 @@ Consulta_Documental/
 │   ├── 01_INDEX.md
 │   ├── 06_IMPLEMENTATION.md
 │   └── 07_PROGRESO_RESUMEN.md
+├── img/                  # logo en negativo y favicon (manual de marca Los Coches)
 ├── index.html
 ├── main.js
 ├── styles.css

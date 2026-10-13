@@ -269,7 +269,8 @@ button { cursor: pointer; }
   position: sticky;
   top: 0;
   z-index: 500;
-  height: var(--alto-encabezado);
+  /* Móvil: alto automático (logo y título en dos líneas); desde 600px, alto fijo */
+  min-height: var(--alto-encabezado);
   background: var(--gradiente-encabezado);
   box-shadow: 0 2px 12px rgba(40, 84, 166, 0.20);
   flex-shrink: 0;
@@ -279,11 +280,29 @@ button { cursor: pointer; }
   max-width: var(--ancho-contenedor);
   margin: 0 auto;
   height: 100%;
-  padding: 0 var(--espacio-lg);
+  padding: var(--espacio-sm) var(--espacio-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--espacio-md);
+}
+
+/* Móvil: logo arriba y título debajo, para no comprimir el logo */
+.encabezado__identidad {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-xs);
+  min-width: 0;
+}
+
+/* Logo: ancho fijo de 208px → logotipo visible ≈ 186px (mínimo de pantalla: 180px, lámina 09).
+   Sin deformar ni recolorear (lámina 22). */
+.encabezado__logo {
+  display: block;
+  width: 208px;
+  height: auto;
+  flex-shrink: 0;
 }
 
 .encabezado__titulo-sistema {
@@ -797,6 +816,19 @@ body.sin-scroll { overflow: hidden; }
    13. RESPONSIVE — TABLET (>= 600px)
 ================================================================ */
 @media (min-width: 600px) {
+  .encabezado { height: var(--alto-encabezado); }
+  .encabezado__contenedor { padding: 0 var(--espacio-lg); }
+  .encabezado__identidad {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--espacio-sm);
+  }
+  /* Separador fuera de la caja del logo: respeta el área de protección */
+  .encabezado__titulo-sistema {
+    padding-left: var(--espacio-md);
+    border-left: 1px solid rgba(255, 255, 255, 0.35);
+  }
+
   .barra-busqueda {
     flex-direction: row;
     align-items: flex-start;
