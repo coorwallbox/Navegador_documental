@@ -68,5 +68,7 @@
 ## Siguiente paso
 
 > Aviso de Design_System_Core (2026-10-13): su Fase 15 subió `reset()` al original de `<ds-stepper>` (mismo método que la copia de `ds/components/stepper/stepper.core.js`). Pendiente, como cambio aparte y con aprobación: reemplazar la copia por la del original (lo único que se pierde es el comentario de adaptación) y repetir el QA del cargue.
+>
+> Aviso de Design_System_Core (2026-10-13): su Fase 16 corrigió en el original el conector descentrado del Stepper (`--stepper-connector-left` como fórmula, +1px en el paso actual), el mismo arreglo que esta consulta aplicó en `styles.css`. Si se reemplaza la copia de `ds/` por el original, esa regla de `styles.css` sobra (da el mismo resultado) y conviene quitarla en el mismo cambio.
 
 Fase 14: flujo F1 (lectura) con guía paso a paso y prueba de publicación interna. Necesita del usuario: confirmar licencia Premium de Power Automate y acceso al sitio de SharePoint de Calidad. El listado en Excel ya existe como tabla `ListadoMaestro` (migración del listado actual a las 20 columnas, generada fuera del repositorio, 2026-10-13). Se probó en local con la consulta, simulando la respuesta de F1 (todo texto, fechas como número de serie), a 375, 768 y 1280 px: 0 errores. Las filas sin nombre no se muestran; los códigos repetidos se muestran por separado. Antes de usarlo, Sistemas de Gestión depura los casos de su hoja «Revisar».
