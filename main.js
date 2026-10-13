@@ -2,7 +2,7 @@
    CONSULTA DOCUMENTAL
    main.js · Fase 1 · 2026
    Módulo principal de la aplicación.
-   Depende de: config.js, catalog.js, utils.js y demo-data.js (deben cargarse antes en el HTML)
+   Depende de: config.js, catalog.js, utils.js, demo-data.js y upload.js (deben cargarse antes en el HTML)
 
    Flujo:
      1. DOMContentLoaded → App.init()
@@ -51,8 +51,6 @@ const App = (() => {
     /** Documento actualmente mostrado en el panel de detalle (o null) */
     detailDocument: null,
 
-    /** Elemento que tenía el foco antes de abrir el panel de detalle */
-    lastFocusedElement: null,
   };
 
 
@@ -71,6 +69,8 @@ const App = (() => {
     _cacheDOM();
     Utils.Loader.init();
     Utils.Toast.init();
+    Utils.Dialog.init();
+    Upload.init({ getDocuments: () => state.allDocuments });
     _bindEvents();
     await _loadDocuments();
     Utils.General.log('Aplicación inicializada · Modo demo:', CONFIG.MODO_DEMO);
@@ -92,7 +92,6 @@ const App = (() => {
     DOM.filaSinDatos         = document.getElementById('fila-sin-datos');
     DOM.filaSinResultados    = document.getElementById('fila-sin-resultados');
     // Panel de detalle
-    DOM.detailOverlay        = document.getElementById('detalle-overlay');
     DOM.detailPanel           = document.getElementById('panel-detalle');
     DOM.btnCerrarPanel       = document.getElementById('btn-cerrar-panel');
     DOM.btnOpenPanel         = document.getElementById('btn-abrir-panel');
@@ -117,7 +116,6 @@ const App = (() => {
 
     // Panel de detalle
     DOM.btnCerrarPanel.addEventListener('click', _closeDetailPanel);
-    DOM.detailOverlay.addEventListener('click', _closeDetailPanel);
     DOM.btnOpenPanel.addEventListener('click', () => _handleOpen(state.detailDocument));
     // Anexos, documento principal y variantes: abren su detalle en el mismo panel
     DOM.detailBody.addEventListener('click', (evento) => {
@@ -126,11 +124,7 @@ const App = (() => {
       if (doc) _showDetail(doc, true);
     });
 
-    document.addEventListener('keydown', (evento) => {
-      if (!DOM.detailPanel.classList.contains('activo')) return;
-      if (evento.key === 'Escape') _closeDetailPanel();
-      else if (evento.key === 'Tab') _trapFocus(evento);
-    });
+    // Overlay, Esc y foco atrapado: Utils.Dialog
   }
 
 
@@ -518,17 +512,15 @@ const App = (() => {
    *   para devolverle el foco al cerrar
    */
   function _openDetailPanel(doc, triggerElement) {
-    state.lastFocusedElement = triggerElement ?? document.activeElement;
     _showDetail(doc, false);
-
-    DOM.detailOverlay.classList.add('activo');
-    DOM.detailOverlay.setAttribute('aria-hidden', 'false');
-    DOM.detailPanel.classList.add('activo');
-    DOM.detailPanel.setAttribute('aria-hidden', 'false');
-
-    document.body.classList.add('sin-scroll');
-    _setBackgroundInert(true);
-    setTimeout(() => DOM.btnCerrarPanel.focus(), 50);
+    Utils.Dialog.open(DOM.detailPanel, {
+      initialFocus: DOM.btnCerrarPanel,
+      returnFocus: triggerElement,
+      onClose: () => {
+        DOM.detailTitulo.removeAttribute('tabindex');
+        state.detailDocument = null;
+      },
+    });
   }
 
   /**
@@ -652,56 +644,11 @@ const App = (() => {
   }
 
   /**
-   * Vuelve inerte (ni foco ni clic ni lector de pantalla) el contenido detrás
-   * del panel mientras está abierto. Los avisos (toasts) quedan operables.
-   * @private
-   */
-  function _setBackgroundInert(inert) {
-    document.querySelectorAll('body > header, body > main, body > footer')
-      .forEach((region) => { region.inert = inert; });
-  }
-
-  /**
-   * Mantiene el foco dentro del panel: Tab en el último control vuelve al
-   * primero y Shift+Tab en el primero va al último.
-   * @private
-   */
-  function _trapFocus(evento) {
-    const focusables = [...DOM.detailPanel.querySelectorAll(
-      'button:not([disabled]), [href], input, select, [tabindex]:not([tabindex="-1"])')]
-      .filter((el) => el.offsetParent !== null);
-    if (!focusables.length) return;
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    const inside = DOM.detailPanel.contains(document.activeElement);
-    if (evento.shiftKey && (document.activeElement === first || !inside)) {
-      evento.preventDefault();
-      last.focus();
-    } else if (!evento.shiftKey && (document.activeElement === last || !inside)) {
-      evento.preventDefault();
-      first.focus();
-    }
-  }
-
-  /**
    * Cierra el panel de detalle y devuelve el foco al elemento que lo abrió.
    * @private
    */
   function _closeDetailPanel() {
-    DOM.detailTitulo.removeAttribute('tabindex');
-    DOM.detailOverlay.classList.remove('activo');
-    DOM.detailOverlay.setAttribute('aria-hidden', 'true');
-    DOM.detailPanel.classList.remove('activo');
-    DOM.detailPanel.setAttribute('aria-hidden', 'true');
-
-    document.body.classList.remove('sin-scroll');
-    _setBackgroundInert(false);
-
-    state.detailDocument = null;
-    if (state.lastFocusedElement && typeof state.lastFocusedElement.focus === 'function') {
-      state.lastFocusedElement.focus();
-    }
-    state.lastFocusedElement = null;
+    Utils.Dialog.close();
   }
 
 

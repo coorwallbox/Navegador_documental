@@ -19,4 +19,6 @@ const APP_CONFIG = Object.freeze({
   REVIEW_DAYS: 15,
   // Tamaño máximo del archivo a cargar (MB)
   MAX_UPLOAD_MB: 20,
+  // Dominios de correo aceptados en el cargue (vacío = sin restricción en el navegador)
+  ALLOWED_EMAIL_DOMAINS: [],
 });

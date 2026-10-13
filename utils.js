@@ -5,6 +5,7 @@
    Expone el objeto global Utils con los siguientes submódulos:
      · Loader  — overlay de carga global
      · Toast   — sistema de notificaciones
+     · Dialog  — paneles laterales modales (detalle y cargue)
      · Status  — los 4 estados de documento y la regla de descarga
      · Format  — presentación de fechas y retención
      · Json    — parseo y normalización de respuestas (20 columnas)
@@ -110,6 +111,97 @@ const Utils = (() => {
       toast.addEventListener('animationend', () => {
         if (toast.parentNode) toast.parentNode.removeChild(toast);
       }, { once: true });
+    },
+
+  };
+
+
+  /* ==============================================================
+     2b. DIÁLOGOS (paneles laterales modales)
+     Un solo diálogo activo a la vez (detalle o cargue): overlay
+     compartido, fondo inerte, foco atrapado, Esc para cerrar y foco
+     devuelto al elemento que lo abrió (Fase 9, generalizado en la 11).
+  ============================================================== */
+  const Dialog = {
+
+    _active: null,
+    _overlay: null,
+
+    /** Inicializa el overlay compartido y el teclado. Llamar desde App.init(). */
+    init() {
+      Dialog._overlay = document.getElementById('detalle-overlay');
+      Dialog._overlay.addEventListener('click', () => Dialog.close());
+      document.addEventListener('keydown', (evento) => {
+        if (!Dialog._active) return;
+        if (evento.key === 'Escape') Dialog.close();
+        else if (evento.key === 'Tab') Dialog._trapFocus(evento);
+      });
+    },
+
+    /**
+     * Abre un panel como diálogo modal.
+     * @param {HTMLElement} panel
+     * @param {Object} [options]
+     * @param {HTMLElement} [options.initialFocus] — elemento que recibe el foco al abrir
+     * @param {HTMLElement} [options.returnFocus] — elemento que recupera el foco al cerrar
+     * @param {Function} [options.onClose] — se ejecuta al cerrar
+     */
+    open(panel, { initialFocus, returnFocus, onClose } = {}) {
+      if (Dialog._active) Dialog.close();
+      Dialog._active = { panel, returnFocus: returnFocus ?? document.activeElement, onClose };
+      Dialog._overlay.classList.add('activo');
+      Dialog._overlay.setAttribute('aria-hidden', 'false');
+      panel.classList.add('activo');
+      panel.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('sin-scroll');
+      Dialog._setBackgroundInert(true);
+      if (initialFocus) setTimeout(() => initialFocus.focus(), 50);
+    },
+
+    /** Cierra el diálogo activo y devuelve el foco. */
+    close() {
+      const active = Dialog._active;
+      if (!active) return;
+      Dialog._active = null;
+      Dialog._overlay.classList.remove('activo');
+      Dialog._overlay.setAttribute('aria-hidden', 'true');
+      active.panel.classList.remove('activo');
+      active.panel.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('sin-scroll');
+      Dialog._setBackgroundInert(false);
+      if (active.onClose) active.onClose();
+      if (active.returnFocus && typeof active.returnFocus.focus === 'function') active.returnFocus.focus();
+    },
+
+    /** Indica si ese panel es el diálogo abierto. */
+    isOpen(panel) {
+      return Boolean(Dialog._active) && Dialog._active.panel === panel;
+    },
+
+    /** Vuelve inerte el contenido detrás del diálogo; los avisos (toasts) quedan operables. @private */
+    _setBackgroundInert(inert) {
+      document.querySelectorAll('body > header, body > main, body > footer')
+        .forEach((region) => { region.inert = inert; });
+    },
+
+    /** Tab en el último control vuelve al primero; Shift+Tab en el primero va al último. @private */
+    _trapFocus(evento) {
+      const panel = Dialog._active.panel;
+      const focusables = [...panel.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]):not([type="radio"]), input[type="radio"]:checked:not([disabled]), ' +
+        'select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])')]
+        .filter((el) => el.offsetParent !== null);
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const inside = panel.contains(document.activeElement);
+      if (evento.shiftKey && (document.activeElement === first || !inside)) {
+        evento.preventDefault();
+        last.focus();
+      } else if (!evento.shiftKey && (document.activeElement === last || !inside)) {
+        evento.preventDefault();
+        first.focus();
+      }
     },
 
   };
@@ -503,6 +595,6 @@ const Utils = (() => {
   /* ==============================================================
      API PÚBLICA DEL MÓDULO
   ============================================================== */
-  return { Loader, Toast, Status, Format, Json, Table, General };
+  return { Loader, Toast, Dialog, Status, Format, Json, Table, General };
 
 })();

@@ -18,7 +18,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
-APP_FILES = ['index.html', 'styles.css', 'catalog.js', 'utils.js', 'demo-data.js', 'main.js']
+APP_FILES = ['index.html', 'styles.css', 'catalog.js', 'utils.js', 'demo-data.js', 'upload.js', 'main.js']
 APP_DIRS = ['img']
 LOCAL_HOSTS = {'localhost', '127.0.0.1'}
 
@@ -48,6 +48,12 @@ def load_config(path):
         if not isinstance(value, int) or value <= 0:
             errors.append(f'{key} debe ser un entero positivo')
         config[key] = value
+    domains = config.setdefault('ALLOWED_EMAIL_DOMAINS', [])
+    if not isinstance(domains, list) or not all(
+            isinstance(d, str) and d and '<' not in d and '@' not in d for d in domains):
+        errors.append('ALLOWED_EMAIL_DOMAINS debe ser una lista de dominios (ej. ["empresa.com"])')
+    else:
+        config['ALLOWED_EMAIL_DOMAINS'] = [d.lower() for d in domains]
     if errors:
         sys.exit('ERROR en la configuración:\n  - ' + '\n  - '.join(errors))
     return config
@@ -70,7 +76,8 @@ def build(config, out):
     for name in APP_DIRS:
         # Sin copiar atributos (evita heredar solo lectura de la carpeta original)
         shutil.copytree(ROOT / name, out / name, copy_function=shutil.copyfile)
-    values = {k: config[k] for k in ('URL_DOCUMENTS', 'URL_UPLOAD', 'REVIEW_DAYS', 'MAX_UPLOAD_MB')}
+    values = {k: config[k] for k in ('URL_DOCUMENTS', 'URL_UPLOAD', 'REVIEW_DAYS', 'MAX_UPLOAD_MB',
+                                     'ALLOWED_EMAIL_DOMAINS')}
     body = ',\n'.join(f'  {k}: {json.dumps(v)}' for k, v in values.items())
     (out / 'config.js').write_text(
         '/* Generado por tools/build_deploy.py — configuración real. NO subir a Git. */\n'

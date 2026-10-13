@@ -2,5 +2,6 @@
   "URL_DOCUMENTS": "https://<url-del-flujo-F1-leer-listado>",
   "URL_UPLOAD": "https://<url-del-flujo-F2-recibir-solicitud>",
   "REVIEW_DAYS": 15,
-  "MAX_UPLOAD_MB": 20
+  "MAX_UPLOAD_MB": 20,
+  "ALLOWED_EMAIL_DOMAINS": ["<dominio-de-la-empresa>"]
 }

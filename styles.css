@@ -107,6 +107,9 @@
   padding: 0;
 }
 
+/* El atributo hidden siempre oculta, aunque la clase defina display (Fase 11) */
+[hidden] { display: none !important; }
+
 html {
   font-size: 100%;
   scroll-behavior: smooth;
@@ -935,4 +938,126 @@ body.sin-scroll { overflow: hidden; }
 @media (min-width: 1024px) {
   .contenido-principal { padding: var(--espacio-xl); }
   .filtros { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+
+
+/* ================================================================
+   15. MÓDULO DE CARGUE (Fase 11)
+================================================================ */
+
+/* --- Botón del encabezado (sobre el degradado oscuro) --- */
+.encabezado__meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--espacio-xs);
+  flex-shrink: 0;
+}
+
+.btn--encabezado {
+  background: #FFFFFF;
+  color: var(--color-primario);
+  border-color: #FFFFFF;
+  padding: 0.45rem 0.8rem;
+}
+.btn--encabezado svg { width: 16px; height: 16px; }
+.btn--encabezado:hover { background: var(--color-primario-light); border-color: var(--color-primario-light); }
+.btn--encabezado:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+
+/* En móvil solo "Cargar" (el nombre accesible completo lo da el texto oculto visualmente) */
+.btn__texto-extra {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* --- Panel más ancho que el de detalle --- */
+.panel-cargue { width: min(640px, 100vw); }
+
+.panel-detalle__subtitulo {
+  margin-top: 2px;
+  font-size: var(--tamaño-xs);
+  color: var(--color-texto-suave);
+}
+
+/* --- Formulario --- */
+.form-cargue__grupo {
+  border: none;
+  border-bottom: 1px solid var(--color-borde);
+  min-width: 0;
+}
+.form-cargue__grupo:last-of-type { border-bottom: none; }
+.form-cargue__grupo > legend { float: left; width: 100%; margin-bottom: var(--espacio-xs); }
+.form-cargue__grupo > legend + * { clear: both; }
+
+.form-cargue__fila {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-md);
+}
+
+.campo__input--area { resize: vertical; min-height: 4.5rem; font-family: inherit; line-height: var(--altura-linea-base); }
+.campo__input--archivo { padding: 0.45rem; cursor: pointer; }
+.campo__input:disabled { background: var(--color-superficie-alt); color: var(--color-secundario); cursor: not-allowed; opacity: 1; }
+
+.campo__error {
+  font-size: var(--tamaño-xs);
+  font-weight: var(--peso-semi);
+  color: var(--color-error-texto);
+}
+.campo__input[aria-invalid="true"] { border-color: var(--color-error-texto); }
+
+.form-cargue__nota {
+  font-size: var(--tamaño-xs);
+  color: var(--color-texto-suave);
+  line-height: var(--altura-linea-base);
+}
+.form-cargue__nota--aviso {
+  color: var(--color-advertencia-texto);
+  font-weight: var(--peso-semi);
+}
+
+/* Tipo de cargue: tarjetas con radio */
+.opciones-cargue {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--espacio-sm);
+}
+.opcion-cargue {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-sm);
+  padding: var(--espacio-sm) var(--espacio-md);
+  border: 1.5px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: border-color var(--trans-rapida), background-color var(--trans-rapida);
+}
+.opcion-cargue:hover { border-color: var(--color-acento); }
+.opcion-cargue:has(input:checked) { border-color: var(--color-primario); background: var(--color-primario-light); }
+.opcion-cargue:has(input:focus-visible) { outline: 2px solid var(--color-primario); outline-offset: 2px; }
+.opcion-cargue input { margin-top: 3px; accent-color: var(--color-primario); }
+.opcion-cargue__texto { display: flex; flex-direction: column; gap: 2px; }
+.opcion-cargue__titulo { font-size: var(--tamaño-sm); font-weight: var(--peso-semi); color: var(--color-secundario); }
+.opcion-cargue__ayuda { font-size: var(--tamaño-xs); color: var(--color-texto-suave); }
+
+/* Resumen del documento existente elegido */
+.cargue-resumen {
+  margin-top: var(--espacio-md);
+  padding: var(--espacio-sm) var(--espacio-md);
+  border-left: 3px solid var(--color-primario);
+  background: var(--color-superficie-alt);
+  border-radius: var(--radio-sm);
+}
+.cargue-resumen__titulo { font-size: var(--tamaño-sm); font-weight: var(--peso-semi); color: var(--color-secundario); }
+.cargue-resumen__meta { font-size: var(--tamaño-xs); color: var(--color-texto-suave); line-height: 1.9; }
+
+.cargue-resultado__resumen { display: flex; flex-direction: column; gap: var(--espacio-md); margin-top: var(--espacio-md); }
+
+@media (min-width: 600px) {
+  .btn__texto-extra { position: static; width: auto; height: auto; overflow: visible; clip: auto; }
+  .form-cargue__fila { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .opciones-cargue { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

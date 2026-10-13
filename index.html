@@ -50,7 +50,11 @@
         <h1 class="encabezado__titulo-sistema">Consulta Documental</h1>
       </div>
       <div class="encabezado__meta">
-        <span class="encabezado__version">v0.2</span>
+        <button id="btn-cargar" class="btn btn--encabezado" type="button" aria-haspopup="dialog">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><polyline points="7 9 12 4 17 9"/><path d="M4 16v3a1 1 0 001 1h14a1 1 0 001-1v-3"/></svg>
+          <span>Cargar<span class="btn__texto-extra"> documento</span></span>
+        </button>
+        <span class="encabezado__version">v0.3</span>
       </div>
     </div>
   </header>
@@ -248,11 +252,202 @@
     </footer>
   </aside>
 
-  <!-- Orden obligatorio: configuración → catálogos → utilidades → datos demo → aplicación -->
+  <!-- ============================================================
+       PANEL DE CARGUE DE DOCUMENTOS (Fase 11) — upload.js
+  ============================================================ -->
+  <aside
+    id="panel-cargue"
+    class="panel-detalle panel-cargue"
+    aria-hidden="true"
+    aria-labelledby="panel-cargue-titulo"
+    role="dialog"
+    aria-modal="true"
+  >
+    <header class="panel-detalle__header">
+      <div class="panel-detalle__encabezado-texto">
+        <h2 id="panel-cargue-titulo" class="panel-detalle__titulo">Cargar documento</h2>
+        <p class="panel-detalle__subtitulo">La solicitud pasa a aprobación de Sistemas de Gestión antes de publicarse.</p>
+      </div>
+      <button id="btn-cerrar-cargue" class="panel-detalle__btn-cerrar" type="button" aria-label="Cerrar formulario de cargue">
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </header>
+
+    <form id="form-cargue" class="panel-detalle__cuerpo form-cargue" novalidate>
+
+      <fieldset class="panel-detalle__seccion form-cargue__grupo">
+        <legend class="panel-detalle__seccion-titulo">Tipo de cargue</legend>
+        <div class="opciones-cargue">
+          <label class="opcion-cargue">
+            <input type="radio" name="requestType" value="NEW" checked />
+            <span class="opcion-cargue__texto">
+              <span class="opcion-cargue__titulo">Documento nuevo</span>
+              <span class="opcion-cargue__ayuda">Se le asigna el siguiente código libre.</span>
+            </span>
+          </label>
+          <label class="opcion-cargue">
+            <input type="radio" name="requestType" value="NEW_VERSION" />
+            <span class="opcion-cargue__texto">
+              <span class="opcion-cargue__titulo">Nueva versión</span>
+              <span class="opcion-cargue__ayuda">Mismo código, versión siguiente.</span>
+            </span>
+          </label>
+          <label class="opcion-cargue">
+            <input type="radio" name="requestType" value="ANNEX" />
+            <span class="opcion-cargue__texto">
+              <span class="opcion-cargue__titulo">Anexo</span>
+              <span class="opcion-cargue__ayuda">Código del principal + -AN01, -AN02…</span>
+            </span>
+          </label>
+          <label class="opcion-cargue">
+            <input type="radio" name="requestType" value="VARIANT" />
+            <span class="opcion-cargue__texto">
+              <span class="opcion-cargue__titulo">Variante por empresa</span>
+              <span class="opcion-cargue__ayuda">Mismo código para otra empresa.</span>
+            </span>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset id="cargue-seccion-existente" class="panel-detalle__seccion form-cargue__grupo" hidden>
+        <legend id="cargue-leyenda-existente" class="panel-detalle__seccion-titulo">Documento existente</legend>
+        <div class="campo">
+          <label for="cargue-documento" class="campo__label">Buscar por código o nombre</label>
+          <input id="cargue-documento" type="text" class="campo__input" list="cargue-documentos-lista" autocomplete="off" placeholder="Ej. COM-PR-068" />
+          <p id="cargue-documento-error" class="campo__error" hidden></p>
+        </div>
+        <datalist id="cargue-documentos-lista"></datalist>
+        <div id="cargue-resumen" class="cargue-resumen" hidden></div>
+        <p id="cargue-aviso-existente" class="form-cargue__nota form-cargue__nota--aviso" hidden></p>
+      </fieldset>
+
+      <fieldset class="panel-detalle__seccion form-cargue__grupo">
+        <legend class="panel-detalle__seccion-titulo">Datos del documento</legend>
+        <div class="form-cargue__fila">
+        <div class="campo">
+          <label for="cargue-proceso" class="campo__label">Proceso</label>
+          <select id="cargue-proceso" class="campo__input campo__input--select"></select>
+          <p id="cargue-proceso-error" class="campo__error" hidden></p>
+        </div>
+        <div class="campo">
+          <label for="cargue-tipo" class="campo__label">Tipo de documento</label>
+          <select id="cargue-tipo" class="campo__input campo__input--select"></select>
+          <p id="cargue-tipo-error" class="campo__error" hidden></p>
+        </div>
+        </div>
+        <div class="campo">
+          <label for="cargue-nombre" class="campo__label">Nombre del documento</label>
+          <input id="cargue-nombre" type="text" class="campo__input" maxlength="200" />
+          <p id="cargue-nombre-error" class="campo__error" hidden></p>
+        </div>
+        <div class="campo">
+          <label for="cargue-empresa" class="campo__label">Empresa</label>
+          <select id="cargue-empresa" class="campo__input campo__input--select"></select>
+          <p id="cargue-empresa-error" class="campo__error" hidden></p>
+        </div>
+        <p id="cargue-codigo-previo" class="form-cargue__nota" aria-live="polite"></p>
+      </fieldset>
+
+      <fieldset id="cargue-seccion-retencion" class="panel-detalle__seccion form-cargue__grupo" hidden>
+        <legend class="panel-detalle__seccion-titulo">Retención (obligatoria para formatos)</legend>
+        <div class="form-cargue__fila">
+        <div class="campo">
+          <label for="cargue-ret-gestion" class="campo__label">Años en archivo de gestión</label>
+          <input id="cargue-ret-gestion" type="number" class="campo__input" min="0" max="100" step="1" inputmode="numeric" />
+          <p id="cargue-ret-gestion-error" class="campo__error" hidden></p>
+        </div>
+        <div class="campo">
+          <label for="cargue-ret-central" class="campo__label">Años en archivo central</label>
+          <input id="cargue-ret-central" type="number" class="campo__input" min="0" max="100" step="1" inputmode="numeric" />
+          <p id="cargue-ret-central-error" class="campo__error" hidden></p>
+        </div>
+        </div>
+        <div class="campo">
+          <label for="cargue-disposicion" class="campo__label">Disposición final</label>
+          <select id="cargue-disposicion" class="campo__input campo__input--select"></select>
+          <p id="cargue-disposicion-error" class="campo__error" hidden></p>
+        </div>
+        <div class="campo">
+          <label for="cargue-fundamento" class="campo__label">Fundamento de la retención (opcional)</label>
+          <input id="cargue-fundamento" type="text" class="campo__input" maxlength="200" />
+          <p id="cargue-fundamento-error" class="campo__error" hidden></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="panel-detalle__seccion form-cargue__grupo">
+        <legend class="panel-detalle__seccion-titulo">Cambio y responsables</legend>
+        <div class="campo">
+          <label id="cargue-descripcion-etiqueta" for="cargue-descripcion" class="campo__label">Motivo de creación</label>
+          <textarea id="cargue-descripcion" class="campo__input campo__input--area" rows="3"></textarea>
+          <p id="cargue-descripcion-error" class="campo__error" hidden></p>
+        </div>
+        <div class="form-cargue__fila">
+        <div class="campo">
+          <label for="cargue-elabora" class="campo__label">Cargo que elabora</label>
+          <input id="cargue-elabora" type="text" class="campo__input" maxlength="120" />
+          <p id="cargue-elabora-error" class="campo__error" hidden></p>
+        </div>
+        <div class="campo">
+          <label for="cargue-aprueba" class="campo__label">Cargo que aprueba</label>
+          <input id="cargue-aprueba" type="text" class="campo__input" maxlength="120" />
+          <p id="cargue-aprueba-error" class="campo__error" hidden></p>
+        </div>
+        </div>
+        <div class="campo">
+          <label for="cargue-observaciones" class="campo__label">Observaciones (opcional)</label>
+          <textarea id="cargue-observaciones" class="campo__input campo__input--area" rows="2"></textarea>
+          <p id="cargue-observaciones-error" class="campo__error" hidden></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="panel-detalle__seccion form-cargue__grupo">
+        <legend class="panel-detalle__seccion-titulo">Solicitante</legend>
+        <div class="form-cargue__fila">
+        <div class="campo">
+          <label for="cargue-solicitante" class="campo__label">Nombre</label>
+          <input id="cargue-solicitante" type="text" class="campo__input" autocomplete="name" maxlength="120" />
+          <p id="cargue-solicitante-error" class="campo__error" hidden></p>
+        </div>
+        <div class="campo">
+          <label for="cargue-correo" class="campo__label">Correo</label>
+          <input id="cargue-correo" type="email" class="campo__input" autocomplete="email" maxlength="160" />
+          <p id="cargue-correo-error" class="campo__error" hidden></p>
+        </div>
+        </div>
+      </fieldset>
+
+      <fieldset class="panel-detalle__seccion form-cargue__grupo">
+        <legend class="panel-detalle__seccion-titulo">Archivo</legend>
+        <div class="campo">
+          <label for="cargue-archivo" class="campo__label">Archivo del documento</label>
+          <input id="cargue-archivo" type="file" class="campo__input campo__input--archivo" aria-describedby="cargue-archivo-ayuda" />
+          <p id="cargue-archivo-ayuda" class="campo__ayuda"> </p>
+          <p id="cargue-archivo-error" class="campo__error" hidden></p>
+        </div>
+      </fieldset>
+    </form>
+
+    <div id="cargue-resultado" class="panel-detalle__cuerpo" hidden>
+      <section class="panel-detalle__seccion">
+        <h3 class="panel-detalle__seccion-titulo" tabindex="-1">Solicitud enviada</h3>
+        <p id="cargue-resultado-texto" class="panel-detalle__valor"></p>
+        <dl id="cargue-resultado-resumen" class="cargue-resultado__resumen"></dl>
+      </section>
+    </div>
+
+    <footer class="panel-detalle__footer">
+      <button id="btn-cancelar-cargue" class="btn btn--secundario" type="button">Cancelar</button>
+      <button id="btn-otro-cargue" class="btn btn--secundario" type="button" hidden>Cargar otro</button>
+      <button id="btn-enviar-cargue" class="btn btn--primario" type="submit" form="form-cargue">Enviar solicitud</button>
+    </footer>
+  </aside>
+
+  <!-- Orden obligatorio: configuración → catálogos → utilidades → datos demo → cargue → aplicación -->
   <script src="config.js"></script>
   <script src="catalog.js"></script>
   <script src="utils.js"></script>
   <script src="demo-data.js"></script>
+  <script src="upload.js"></script>
   <script src="main.js"></script>
 
 </body>

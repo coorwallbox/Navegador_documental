@@ -6,7 +6,8 @@
 |---|---|---|
 | [[Entregables/Web/Consulta_Documental/docs/00_README\|00_README.md]] | Propósito, origen de datos, funcionalidades previstas, patrones reutilizados de la referencia | Entrada general al proyecto |
 | `01_INDEX.md` | Este índice | Al iniciar |
+| [[Entregables/Web/Consulta_Documental/docs/03_TRD\|03_TRD.md]] | Contratos técnicos con Power Automate: F1 (leer listado), F2 (recibir solicitud de cargue), F3 (aprobar y publicar); restricciones (CORS, seguridad) | Al construir o cambiar un flujo o el formato de los datos |
 | [[Entregables/Web/Consulta_Documental/docs/06_IMPLEMENTATION\|06_IMPLEMENTATION.md]] | Checklist de fases de desarrollo | Al planear o cerrar una fase |
 | [[Entregables/Web/Consulta_Documental/docs/07_PROGRESO_RESUMEN\|07_PROGRESO_RESUMEN.md]] | Estado actual, bloqueos, siguiente paso | Al iniciar |
 
-Docs técnicos adicionales (`02_PRD`, `03_TRD`, `04_FLOW`, `05_BACKEND`, `08_CHANGELOG`, `09_PROGRESO_DETALLADO`) se añaden solo cuando el alcance de una fase los justifique — no se crean de entrada (Fase 0).
+Docs técnicos adicionales (`02_PRD`, `04_FLOW`, `05_BACKEND`, `08_CHANGELOG`, `09_PROGRESO_DETALLADO`) se añaden solo cuando el alcance de una fase los justifique — no se crean de entrada (Fase 0).

@@ -1,0 +1,617 @@
+/* ================================================================
+   CONSULTA DOCUMENTAL
+   upload.js · Fase 11 · 2026
+   Módulo de cargue de documentos (objeto global Upload).
+   Un líder de proceso envía una solicitud; Sistemas de Gestión la
+   aprueba y el flujo F3 publica (ver docs/03_TRD.md, contrato F2).
+   Casos: documento nuevo, nueva versión, anexo y variante por empresa.
+   Sin URL_UPLOAD configurada, el envío se simula (modo demo).
+   Depende de: config.js, catalog.js y utils.js.
+================================================================ */
+
+const Upload = (() => {
+
+  'use strict';
+
+  /* ============================================================
+     CONFIGURACIÓN
+  ============================================================ */
+  const DEPLOY = (typeof APP_CONFIG !== 'undefined') ? APP_CONFIG : {};
+
+  const CONFIG = {
+    URL_UPLOAD:      DEPLOY.URL_UPLOAD || '',
+    REVIEW_DAYS:     DEPLOY.REVIEW_DAYS || 15,
+    MAX_UPLOAD_MB:   DEPLOY.MAX_UPLOAD_MB || 20,
+    // Dominios de correo aceptados (vacío = sin restricción en el navegador; F2 valida igual)
+    EMAIL_DOMAINS:   DEPLOY.ALLOWED_EMAIL_DOMAINS || [],
+    TIMEOUT_MS:      60000,
+    // Formatos que se pueden cargar (F2 los vuelve a validar)
+    EXTENSIONS:      ['pdf', 'docx', 'xlsx', 'pptx'],
+  };
+
+  /** Tipos de solicitud (valor de requestType en el contrato F2). */
+  const TYPES = {
+    NEW:         'NEW',
+    NEW_VERSION: 'NEW_VERSION',
+    ANNEX:       'ANNEX',
+    VARIANT:     'VARIANT',
+  };
+
+  /** Estados desde los que no se puede pedir un cargue sobre un documento existente. */
+  const CLOSED_STATUSES = ['OBSOLETO', 'ELIMINADO'];
+
+  const DOM = {};
+  const state = {
+    getDocuments: () => [],
+    optionMap: new Map(),   // texto de la opción del buscador → documento
+    selected: null,         // documento existente elegido
+    demoCounter: 0,
+    sending: false,
+  };
+
+
+  /* ============================================================
+     1. INICIALIZACIÓN
+  ============================================================ */
+
+  /**
+   * @param {Object} options
+   * @param {Function} options.getDocuments — devuelve los documentos cargados (App)
+   */
+  function init({ getDocuments }) {
+    state.getDocuments = getDocuments;
+    _cacheDOM();
+    _populateStaticOptions();
+    _bindEvents();
+  }
+
+  function _cacheDOM() {
+    const $ = (id) => document.getElementById(id);
+    Object.assign(DOM, {
+      btnOpen:        $('btn-cargar'),
+      panel:          $('panel-cargue'),
+      btnClose:       $('btn-cerrar-cargue'),
+      btnCancel:      $('btn-cancelar-cargue'),
+      btnSubmit:      $('btn-enviar-cargue'),
+      btnAnother:     $('btn-otro-cargue'),
+      form:           $('form-cargue'),
+      result:         $('cargue-resultado'),
+      resultText:     $('cargue-resultado-texto'),
+      resultSummary:  $('cargue-resultado-resumen'),
+      sectionExisting:$('cargue-seccion-existente'),
+      legendExisting: $('cargue-leyenda-existente'),
+      inputDocument:  $('cargue-documento'),
+      listDocuments:  $('cargue-documentos-lista'),
+      summary:        $('cargue-resumen'),
+      noteExisting:   $('cargue-aviso-existente'),
+      process:        $('cargue-proceso'),
+      type:           $('cargue-tipo'),
+      name:           $('cargue-nombre'),
+      company:        $('cargue-empresa'),
+      codePreview:    $('cargue-codigo-previo'),
+      sectionRetention: $('cargue-seccion-retencion'),
+      retManagement:  $('cargue-ret-gestion'),
+      retCentral:     $('cargue-ret-central'),
+      disposition:    $('cargue-disposicion'),
+      basis:          $('cargue-fundamento'),
+      labelDescription: $('cargue-descripcion-etiqueta'),
+      description:    $('cargue-descripcion'),
+      preparedBy:     $('cargue-elabora'),
+      approvedBy:     $('cargue-aprueba'),
+      notes:          $('cargue-observaciones'),
+      requesterName:  $('cargue-solicitante'),
+      requesterEmail: $('cargue-correo'),
+      file:           $('cargue-archivo'),
+      fileHelp:       $('cargue-archivo-ayuda'),
+    });
+  }
+
+  /** Opciones que no dependen del documento: procesos, tipos, disposición. @private */
+  function _populateStaticOptions() {
+    const option = (value, text) => {
+      const o = document.createElement('option');
+      o.value = value;
+      o.textContent = text;
+      return o;
+    };
+
+    DOM.process.appendChild(option('', 'Elige un proceso'));
+    Catalog.BANDS.forEach((band) => band.groups.forEach((group) => {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = group.name ? `${band.name} · ${group.name}` : band.name;
+      group.processes.forEach((code) => optgroup.appendChild(option(code, `${code} — ${Catalog.processName(code)}`)));
+      DOM.process.appendChild(optgroup);
+    }));
+
+    DOM.type.appendChild(option('', 'Elige un tipo'));
+    Catalog.TYPES.forEach((t) => DOM.type.appendChild(option(t.code, `${t.code} — ${t.name}`)));
+
+    DOM.disposition.appendChild(option('', 'Elige una opción'));
+    Catalog.DISPOSITIONS.forEach((d) => DOM.disposition.appendChild(option(d, d.charAt(0) + d.slice(1).toLowerCase())));
+
+    DOM.file.accept = CONFIG.EXTENSIONS.map((e) => `.${e}`).join(',');
+    DOM.fileHelp.textContent = `PDF, Word, Excel o PowerPoint · máximo ${CONFIG.MAX_UPLOAD_MB} MB.`;
+  }
+
+  function _bindEvents() {
+    DOM.btnOpen.addEventListener('click', () => open());
+    DOM.btnClose.addEventListener('click', () => Utils.Dialog.close());
+    DOM.btnCancel.addEventListener('click', () => Utils.Dialog.close());
+    DOM.btnAnother.addEventListener('click', () => _reset());
+    DOM.form.addEventListener('submit', _handleSubmit);
+    DOM.form.querySelectorAll('input[name="requestType"]').forEach((radio) =>
+      radio.addEventListener('change', _applyRequestType));
+    DOM.inputDocument.addEventListener('input', _handleDocumentInput);
+    DOM.inputDocument.addEventListener('change', _handleDocumentInput);
+    [DOM.process, DOM.type, DOM.company].forEach((el) => el.addEventListener('change', _updateDerived));
+    // Al corregir un campo se limpia su error
+    DOM.form.addEventListener('input', (evento) => _clearError(evento.target));
+    DOM.form.addEventListener('change', (evento) => _clearError(evento.target));
+  }
+
+
+  /* ============================================================
+     2. APERTURA Y ESTADO DEL FORMULARIO
+  ============================================================ */
+
+  /** Abre el formulario (opcionalmente con un tipo de solicitud ya elegido). */
+  function open(requestType = TYPES.NEW) {
+    _reset(requestType);
+    Utils.Dialog.open(DOM.panel, {
+      initialFocus: DOM.form.querySelector('input[name="requestType"]:checked'),
+      returnFocus: DOM.btnOpen,
+    });
+  }
+
+  /** Deja el formulario vacío, en la vista de formulario. @private */
+  function _reset(requestType = TYPES.NEW) {
+    DOM.form.reset();
+    DOM.form.hidden = false;
+    DOM.result.hidden = true;
+    DOM.btnSubmit.hidden = false;
+    DOM.btnAnother.hidden = true;
+    DOM.btnCancel.textContent = 'Cancelar';
+    DOM.form.querySelector(`input[name="requestType"][value="${requestType}"]`).checked = true;
+    _applyRequestType();
+    if (!DOM.form.hidden && DOM.panel.classList.contains('activo')) {
+      DOM.form.querySelector('input[name="requestType"]:checked').focus();
+    }
+  }
+
+  function _requestType() {
+    return DOM.form.querySelector('input[name="requestType"]:checked').value;
+  }
+
+  /** Muestra, oculta y habilita campos según el tipo de solicitud. @private */
+  function _applyRequestType() {
+    const type = _requestType();
+    const isNew = type === TYPES.NEW;
+
+    _clearAllErrors();  // cambia el contexto: los errores anteriores ya no aplican
+    state.selected = null;
+    DOM.inputDocument.value = '';
+    DOM.summary.hidden = true;
+    DOM.noteExisting.hidden = true;
+    DOM.sectionExisting.hidden = isNew;
+    DOM.legendExisting.textContent = {
+      NEW_VERSION: 'Documento a actualizar',
+      ANNEX:       'Documento principal',
+      VARIANT:     'Documento base de la variante',
+    }[type] || '';
+    DOM.labelDescription.textContent = isNew ? 'Motivo de creación' : 'Descripción del cambio';
+
+    // Proceso y tipo solo se eligen en un documento nuevo; en los demás vienen del existente
+    DOM.process.disabled = !isNew;
+    DOM.type.disabled = !isNew;
+    // Nombre: editable salvo en variante (es el mismo documento)
+    DOM.name.disabled = type === TYPES.VARIANT;
+    // Empresa: se elige en nuevo y variante; en nueva versión y anexo es la del existente
+    DOM.company.disabled = type === TYPES.NEW_VERSION || type === TYPES.ANNEX;
+    DOM.name.placeholder = type === TYPES.ANNEX ? 'Ej. Anexo 2. Matriz de responsables' : '';
+
+    if (isNew) {
+      DOM.process.value = '';
+      DOM.type.value = '';
+      DOM.name.value = '';
+    }
+    _fillCompanyOptions(isNew ? Catalog.COMPANIES : []);
+    _fillDocumentOptions(type);
+    _updateDerived();
+  }
+
+  /** Opciones de empresa (en variante: solo las que aún no tiene el documento). @private */
+  function _fillCompanyOptions(companies, selectedValue = '') {
+    DOM.company.innerHTML = '';
+    companies.forEach((c) => {
+      const o = document.createElement('option');
+      o.value = c;
+      o.textContent = Catalog.companyLabel(c);
+      DOM.company.appendChild(o);
+    });
+    if (selectedValue) DOM.company.value = selectedValue;
+  }
+
+  /** Opciones del buscador de documentos existentes según el tipo de solicitud. @private */
+  function _fillDocumentOptions(type) {
+    state.optionMap.clear();
+    DOM.listDocuments.innerHTML = '';
+    if (type === TYPES.NEW) return;
+
+    state.getDocuments()
+      .filter((doc) => !CLOSED_STATUSES.includes(doc.status))
+      .filter((doc) => type !== TYPES.ANNEX || !doc.parentCode)   // un anexo no tiene anexos
+      .forEach((doc) => {
+        // En anexo basta el código del principal; en los demás importa la empresa (variante)
+        const text = type === TYPES.ANNEX
+          ? `${doc.code} · ${doc.documentName}`
+          : `${doc.code} · ${doc.documentName} · ${Catalog.companyLabel(doc.company)}`;
+        if (state.optionMap.has(text)) return;
+        state.optionMap.set(text, doc);
+        const o = document.createElement('option');
+        o.value = text;
+        DOM.listDocuments.appendChild(o);
+      });
+  }
+
+  /** Al escribir o elegir en el buscador: si coincide con una opción, se toma ese documento. @private */
+  function _handleDocumentInput() {
+    const doc = state.optionMap.get(DOM.inputDocument.value.trim()) || null;
+    if (doc === state.selected) return;
+    state.selected = doc;
+    _applySelectedDocument();
+  }
+
+  /** Precarga los datos del documento existente elegido. @private */
+  function _applySelectedDocument() {
+    const doc = state.selected;
+    const type = _requestType();
+    DOM.noteExisting.hidden = true;
+    // Los campos se precargan: se limpian sus errores (el del buscador se conserva si no hay documento)
+    DOM.form.querySelectorAll('[aria-invalid]').forEach((el) => { if (el !== DOM.inputDocument || doc) _clearError(el); });
+
+    if (!doc) {
+      DOM.summary.hidden = true;
+      DOM.process.value = '';
+      DOM.type.value = '';
+      DOM.name.value = '';
+      _fillCompanyOptions([]);
+      _updateDerived();
+      return;
+    }
+
+    const escape = Utils.General.escapeHTML;
+    DOM.summary.innerHTML = `
+      <p class="cargue-resumen__titulo">${escape(doc.code)} · ${escape(doc.documentName)}</p>
+      <p class="cargue-resumen__meta">${escape(Catalog.typeName(doc.type))} · ${escape(doc.process)} — ${escape(Catalog.processName(doc.process))}
+        · Versión ${escape(doc.version || '—')} · ${escape(Catalog.companyLabel(doc.company))}
+        · <span class="badge-estado ${Utils.Status.badgeClass(doc.status)}">${escape(Utils.Status.label(doc.status))}</span></p>`;
+    DOM.summary.hidden = false;
+
+    DOM.process.value = doc.process;
+    DOM.type.value = doc.type;
+    DOM.name.value = type === TYPES.ANNEX ? '' : doc.documentName;
+    DOM.preparedBy.value = doc.preparedBy;
+    DOM.approvedBy.value = doc.approvedBy;
+    DOM.retManagement.value = doc.retentionManagementYears;
+    DOM.retCentral.value = doc.retentionCentralYears;
+    DOM.disposition.value = doc.finalDisposition;
+    DOM.basis.value = doc.retentionBasis;
+
+    let note = '';
+    if (type === TYPES.VARIANT) {
+      const taken = state.getDocuments().filter((d) => d.code === doc.code).map((d) => d.company);
+      const free = Catalog.COMPANIES.filter((c) => c !== Catalog.COMPANY_ALL && !taken.includes(c));
+      _fillCompanyOptions(free);
+      if (!free.length) note = 'Este documento ya existe para todas las empresas: no admite otra variante.';
+      else if (taken.includes(Catalog.COMPANY_ALL)) {
+        note = 'Hoy el documento aplica a todas las empresas; al aprobar la variante, SG ajustará su registro.';
+      }
+    } else {
+      _fillCompanyOptions([doc.company], doc.company);
+    }
+    if (type === TYPES.NEW_VERSION && doc.status === Utils.Status.EN_REVISION) {
+      note = 'Este documento ya está En revisión: confirma con Sistemas de Gestión que no haya otra solicitud en curso.';
+    }
+    DOM.noteExisting.textContent = note;
+    DOM.noteExisting.hidden = !note;
+    _updateDerived();
+  }
+
+  /** Recalcula la retención visible y la vista previa del código. @private */
+  function _updateDerived() {
+    const type = _requestType();
+    const isRG = DOM.type.value === 'RG';
+    DOM.sectionRetention.hidden = !isRG;
+    [DOM.retManagement, DOM.retCentral, DOM.disposition, DOM.basis].forEach((el) => { el.disabled = !isRG; });
+    DOM.codePreview.textContent = _codePreviewText(type);
+  }
+
+  /** Texto de la vista previa del código (provisional: lo confirma SG al aprobar). @private */
+  function _codePreviewText(type) {
+    const doc = state.selected;
+    const docs = state.getDocuments();
+    if (type === TYPES.NEW) {
+      if (!DOM.process.value || !DOM.type.value) return 'Código: se calcula al elegir proceso y tipo.';
+      return `Código provisional: ${proposedCode(docs, TYPES.NEW, { process: DOM.process.value, type: DOM.type.value })} (lo confirma SG al aprobar).`;
+    }
+    if (!doc) return '';
+    if (type === TYPES.ANNEX) {
+      return `Código provisional: ${proposedCode(docs, TYPES.ANNEX, { parentCode: doc.code })} (lo confirma SG al aprobar).`;
+    }
+    if (type === TYPES.NEW_VERSION) {
+      const next = (parseInt(doc.version, 10) || 0) + 1;
+      const deadline = Utils.Format.dateLong(_addDays(Utils.Format.todayISO(), CONFIG.REVIEW_DAYS));
+      return `Mismo código ${doc.code}, versión propuesta ${next}. Al enviar, el documento queda En revisión hasta la decisión de SG (fecha límite: ${deadline}).`;
+    }
+    return `Mismo código ${doc.code}, para la empresa elegida.`;
+  }
+
+
+  /* ============================================================
+     3. REGLAS DE CÓDIGO (vista previa; F3 aplica las mismas al aprobar)
+  ============================================================ */
+
+  /**
+   * Código propuesto según la regla de codificación:
+   * NEW → siguiente consecutivo libre de SIGLA-TIPO (nunca reutiliza: cuenta todos los estados);
+   * ANNEX → código del principal + siguiente -ANnn.
+   * @param {Array<Object>} documents
+   * @param {string} requestType
+   * @param {Object} data — { process, type } o { parentCode }
+   * @returns {string}
+   */
+  function proposedCode(documents, requestType, data) {
+    if (requestType === TYPES.ANNEX) {
+      const prefix = `${data.parentCode}-AN`;
+      const used = documents.map((d) => d.code).filter((c) => c.startsWith(prefix))
+        .map((c) => parseInt(c.slice(prefix.length), 10)).filter((n) => !isNaN(n));
+      return `${prefix}${String((used.length ? Math.max(...used) : 0) + 1).padStart(2, '0')}`;
+    }
+    const pattern = new RegExp(`^${data.process}-${data.type}-(\\d{3})$`);
+    const used = documents.map((d) => (d.code.match(pattern) || [])[1]).filter(Boolean).map(Number);
+    return `${data.process}-${data.type}-${String((used.length ? Math.max(...used) : 0) + 1).padStart(3, '0')}`;
+  }
+
+  function _addDays(isoDate, days) {
+    const [y, m, d] = isoDate.split('-').map(Number);
+    const date = new Date(y, m - 1, d + days);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+
+  /* ============================================================
+     4. VALIDACIÓN
+  ============================================================ */
+
+  /** Valida el formulario; marca los errores y devuelve true si es válido. @private */
+  function _validate() {
+    const type = _requestType();
+    const errors = [];
+    const required = (el, message) => { if (!el.disabled && !String(el.value).trim()) errors.push([el, message]); };
+
+    if (type !== TYPES.NEW && !state.selected) {
+      errors.push([DOM.inputDocument, 'Elige un documento de la lista (busca por código o nombre).']);
+    }
+    required(DOM.process, 'Elige el proceso.');
+    required(DOM.type, 'Elige el tipo de documento.');
+    required(DOM.name, type === TYPES.ANNEX ? 'Escribe el nombre del anexo.' : 'Escribe el nombre del documento.');
+    if (type === TYPES.VARIANT && state.selected && !DOM.company.value) {
+      errors.push([DOM.company, 'No hay empresas disponibles para una variante de este documento.']);
+    }
+    if (DOM.type.value === 'RG') {
+      ['retManagement', 'retCentral'].forEach((key) => {
+        const value = DOM[key].value.trim();
+        if (!/^\d{1,3}$/.test(value) || Number(value) > 100) errors.push([DOM[key], 'Escribe un número entero de años (0 a 100).']);
+      });
+      required(DOM.disposition, 'Elige la disposición final.');
+    }
+    required(DOM.description, type === TYPES.NEW ? 'Explica el motivo de creación.' : 'Describe el cambio.');
+    required(DOM.preparedBy, 'Escribe el cargo que elabora.');
+    required(DOM.approvedBy, 'Escribe el cargo que aprueba.');
+    required(DOM.requesterName, 'Escribe tu nombre.');
+
+    const email = DOM.requesterEmail.value.trim();
+    const domain = email.split('@')[1] || '';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errors.push([DOM.requesterEmail, 'Escribe un correo válido.']);
+    } else if (CONFIG.EMAIL_DOMAINS.length && !CONFIG.EMAIL_DOMAINS.includes(domain.toLowerCase())) {
+      errors.push([DOM.requesterEmail, `Usa tu correo de la empresa (${CONFIG.EMAIL_DOMAINS.join(', ')}).`]);
+    }
+
+    const file = DOM.file.files[0];
+    if (!file) {
+      errors.push([DOM.file, 'Adjunta el archivo.']);
+    } else {
+      const extension = Utils.General.fileExtension(file.name);
+      if (!CONFIG.EXTENSIONS.includes(extension)) {
+        errors.push([DOM.file, `Formato no permitido (.${extension || '?'}). Usa PDF, Word, Excel o PowerPoint.`]);
+      } else if (file.size > CONFIG.MAX_UPLOAD_MB * 1024 * 1024) {
+        errors.push([DOM.file, `El archivo pesa ${(file.size / 1048576).toFixed(1)} MB; el máximo es ${CONFIG.MAX_UPLOAD_MB} MB.`]);
+      } else if (file.size === 0) {
+        errors.push([DOM.file, 'El archivo está vacío.']);
+      }
+    }
+
+    errors.forEach(([el, message]) => _showError(el, message));
+    if (errors.length) {
+      errors[0][0].focus();
+      Utils.Toast.warning(`Revisa ${errors.length === 1 ? 'el campo marcado' : `los ${errors.length} campos marcados`} antes de enviar.`);
+    }
+    return errors.length === 0;
+  }
+
+  function _showError(el, message) {
+    const box = document.getElementById(`${el.id}-error`);
+    el.setAttribute('aria-invalid', 'true');
+    if (box) {
+      box.textContent = message;
+      box.hidden = false;
+      const described = (el.getAttribute('aria-describedby') || '').split(' ').filter(Boolean);
+      if (!described.includes(box.id)) el.setAttribute('aria-describedby', [...described, box.id].join(' '));
+    }
+  }
+
+  function _clearAllErrors() {
+    DOM.form.querySelectorAll('[aria-invalid]').forEach(_clearError);
+  }
+
+  function _clearError(el) {
+    if (!el || !el.id || !el.hasAttribute('aria-invalid')) return;
+    el.removeAttribute('aria-invalid');
+    const box = document.getElementById(`${el.id}-error`);
+    if (box) {
+      box.hidden = true;
+      box.textContent = '';
+    }
+  }
+
+
+  /* ============================================================
+     5. ENVÍO (contrato F2: docs/03_TRD.md)
+  ============================================================ */
+
+  async function _handleSubmit(evento) {
+    evento.preventDefault();
+    if (state.sending || !_validate()) return;
+
+    state.sending = true;
+    DOM.btnSubmit.disabled = true;
+    DOM.btnSubmit.setAttribute('aria-busy', 'true');
+    DOM.btnSubmit.textContent = 'Enviando…';
+
+    try {
+      const payload = await buildPayload();
+      let response;
+      if (!CONFIG.URL_UPLOAD) {
+        // Modo demo: se simula la respuesta de F2
+        await Utils.General.wait(700);
+        state.demoCounter += 1;
+        response = { requestId: `SOL-DEMO-${String(state.demoCounter).padStart(4, '0')}`, status: 'PENDIENTE' };
+        Utils.General.log('Solicitud de cargue (demo):', { ...payload, file: { ...payload.file, contentBase64: '…' } });
+      } else {
+        response = await _send(payload);
+      }
+      _showResult(payload, response);
+    } catch (error) {
+      Utils.General.logError('Upload._handleSubmit', error);
+      Utils.Toast.error('No se pudo enviar la solicitud. Intenta de nuevo; si persiste, avisa a Sistemas de Gestión.');
+    } finally {
+      state.sending = false;
+      DOM.btnSubmit.disabled = false;
+      DOM.btnSubmit.removeAttribute('aria-busy');
+      DOM.btnSubmit.textContent = 'Enviar solicitud';
+    }
+  }
+
+  /** Arma el cuerpo de la solicitud según el contrato F2. */
+  async function buildPayload() {
+    const type = _requestType();
+    const doc = state.selected;
+    const file = DOM.file.files[0];
+    const isRG = DOM.type.value === 'RG';
+    const band = Catalog.bandOf(DOM.process.value);
+    const docs = state.getDocuments();
+    const today = Utils.Format.todayISO();
+
+    let code = '';
+    if (type === TYPES.NEW_VERSION || type === TYPES.VARIANT) code = doc.code;
+
+    return {
+      requestType: type,
+      requestedAt: new Date().toISOString(),
+      reviewDeadline: type === TYPES.NEW_VERSION ? _addDays(today, CONFIG.REVIEW_DAYS) : '',
+      document: {
+        code,
+        proposedCode: type === TYPES.NEW
+          ? proposedCode(docs, type, { process: DOM.process.value, type: DOM.type.value })
+          : type === TYPES.ANNEX ? proposedCode(docs, type, { parentCode: doc.code }) : code,
+        parentCode: type === TYPES.ANNEX ? doc.code : '',
+        name: DOM.name.value.trim(),
+        type: DOM.type.value,
+        process: DOM.process.value,
+        band: band ? band.code : '',
+        company: DOM.company.value,
+        currentVersion: type === TYPES.NEW_VERSION || type === TYPES.VARIANT ? (doc.version || '') : '',
+      },
+      retention: {
+        managementYears: isRG ? Number(DOM.retManagement.value) : null,
+        centralYears: isRG ? Number(DOM.retCentral.value) : null,
+        finalDisposition: isRG ? DOM.disposition.value : '',
+        basis: isRG ? DOM.basis.value.trim() : '',
+      },
+      change: {
+        description: DOM.description.value.trim(),
+        preparedBy: DOM.preparedBy.value.trim(),
+        approvedBy: DOM.approvedBy.value.trim(),
+        notes: DOM.notes.value.trim(),
+      },
+      requester: {
+        name: DOM.requesterName.value.trim(),
+        email: DOM.requesterEmail.value.trim().toLowerCase(),
+      },
+      file: {
+        name: file.name,
+        extension: Utils.General.fileExtension(file.name),
+        sizeBytes: file.size,
+        contentType: file.type || 'application/octet-stream',
+        contentBase64: await _readBase64(file),
+      },
+    };
+  }
+
+  /** Lee el archivo como base64 (sin el prefijo data:). @private */
+  function _readBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  /** Envía la solicitud al flujo F2 y devuelve su respuesta { requestId, status }. @private */
+  async function _send(payload) {
+    const response = await fetch(CONFIG.URL_UPLOAD, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(CONFIG.TIMEOUT_MS),
+    });
+    const data = Utils.Json.parseSafe(await response.text());
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${(data && data.error) || response.statusText}`);
+    if (!data || !data.requestId) throw new Error('La respuesta de F2 no trae requestId.');
+    return data;
+  }
+
+  /** Muestra la confirmación con el número de solicitud. @private */
+  function _showResult(payload, response) {
+    const escape = Utils.General.escapeHTML;
+    const labels = { NEW: 'Documento nuevo', NEW_VERSION: 'Nueva versión', ANNEX: 'Anexo', VARIANT: 'Variante por empresa' };
+    const d = payload.document;
+    DOM.resultText.innerHTML = `Solicitud <strong>${escape(response.requestId)}</strong> enviada. Sistemas de Gestión la revisará;
+      te llegará la respuesta a <strong>${escape(payload.requester.email)}</strong>.`;
+    DOM.resultSummary.innerHTML = [
+      ['Tipo de cargue', labels[payload.requestType]],
+      ['Código', d.code || `${d.proposedCode} (provisional)`],
+      ['Documento', d.name],
+      ['Empresa', Catalog.companyLabel(d.company)],
+      ['Archivo', `${payload.file.name} (${(payload.file.sizeBytes / 1048576).toFixed(2)} MB)`],
+    ].map(([k, v]) => `<div class="panel-detalle__campo"><dt class="panel-detalle__etiqueta">${escape(k)}</dt>
+      <dd class="panel-detalle__valor">${escape(v)}</dd></div>`).join('');
+
+    DOM.form.hidden = true;
+    DOM.result.hidden = false;
+    DOM.btnSubmit.hidden = true;
+    DOM.btnAnother.hidden = false;
+    DOM.btnCancel.textContent = 'Cerrar';
+    DOM.result.querySelector('h3').focus();
+    Utils.Toast.success(`Solicitud ${response.requestId} enviada a Sistemas de Gestión.`);
+  }
+
+
+  /* ============================================================
+     API PÚBLICA
+  ============================================================ */
+  return { init, open, proposedCode, buildPayload, TYPES };
+
+})();
