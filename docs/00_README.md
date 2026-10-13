@@ -3,7 +3,7 @@ tecnologia: Web
 tipo: entregable
 proyecto: Consulta_Documental
 estado: pendiente
-estado_resumen: "Fase 10 pendiente (integración real con Power Automate)"
+estado_resumen: "Fase 11 pendiente (módulo de cargue, interfaz en modo demo)"
 stack: "HTML + CSS + JS vainilla"
 descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
 aliases: [Consulta_Documental]
@@ -61,6 +61,11 @@ Consulta_Documental/
 │   ├── 06_IMPLEMENTATION.md
 │   └── 07_PROGRESO_RESUMEN.md
 ├── img/                  # logo en negativo y favicon (manual de marca Los Coches)
+├── tools/
+│   └── build_deploy.py   # arma dist/ con la configuración real (config.local.json)
+├── .gitignore            # excluye config.local.json y dist/
+├── config.js             # configuración de despliegue: en el repositorio, URL vacías (modo demo)
+├── config.local.example.json  # plantilla de la configuración real
 ├── catalog.js            # catálogos: tipos, bandas, procesos, empresas
 ├── demo-data.js          # datos de ejemplo inventados (modo demo)
 ├── index.html
@@ -69,7 +74,17 @@ Consulta_Documental/
 └── utils.js
 ```
 
-**Orden de carga obligatorio en `index.html`:** `catalog.js` → `utils.js` → `demo-data.js` → `main.js` (`Utils` usa `Catalog`; `App` depende de los tres).
+**Orden de carga obligatorio en `index.html`:** `config.js` → `catalog.js` → `utils.js` → `demo-data.js` → `main.js` (`Utils` usa `Catalog`; `App` depende de todos).
+
+## Despliegue
+
+El repositorio es público y la URL de un flujo con disparador HTTP permite usarlo a quien la tenga: **las URL nunca van al repositorio**.
+
+1. Copiar `config.local.example.json` a `config.local.json` (excluido de Git) y completar `URL_DOCUMENTS` (flujo F1) y, desde la Fase 13, `URL_UPLOAD` (flujo F2).
+2. Ejecutar `python tools/build_deploy.py`: genera `dist/` (excluida de Git) con la aplicación y un `config.js` con los valores reales. Valida las URL (https) y los parámetros, y falla si falta la configuración.
+3. Publicar el contenido de `dist/` **solo en un destino interno**: una página del sitio de SharePoint de Calidad (si el sitio permite servir la aplicación) o, como plan B, Azure Static Web Apps restringido a los usuarios de la empresa. Se prueba en la Fase 12.
+
+Sin URL configurada (el `config.js` del repositorio), la consulta funciona en modo demo con `demo-data.js`. El flujo debe aceptar CORS, porque la página y el flujo están en dominios distintos.
 
 ## Funcionalidades principales (previstas)
 

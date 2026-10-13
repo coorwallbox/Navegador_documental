@@ -16,7 +16,9 @@
 - Fase 7 (Filtros, búsqueda y enlace por URL, + nivel documental): **completa**.
 - Fase 8 (Tabla y panel de detalle): **completa**.
 - Fase 9 (QA y accesibilidad): **completa**.
-- Fase 10 (Integración real con Power Automate): pendiente de iniciar.
+- **Cambio de alcance (2026-10-13, aprobado):** módulo de cargue de documentos (líderes cargan, SG aprueba; formulario propio + flujo HTTP con medidas de seguridad). La integración se reorganiza: 10 configuración y despliegue, 11 módulo de cargue (interfaz), 12 flujo F1 y publicación interna, 13 flujos F2 y F3, 14 cierre.
+- Fase 10 (Configuración y despliegue): **completa**.
+- Fase 11 (Módulo de cargue, interfaz en modo demo): pendiente de iniciar.
 
 ## Validación
 
@@ -46,6 +48,7 @@
   - [x] Movimiento reducido respetado.
   - [x] Datos reales: 0 coincidencias en el commit actual (códigos y nombres del listado real, búsqueda local).
   - [x] Regresión de las Fases 5–8: OK.
+- Fase 10 validada con QA headless (2026-10-13): 15/15 (script de despliegue y sus validaciones, modo demo sin configuración, ruta real con F1 simulado y 300 filas, error del flujo, repositorio sin URL, Git ignora la configuración real, 0 errores). Corregidos 2 fallos del script (solo lectura heredado de OneDrive; `URL_UPLOAD` opcional). Hallazgo: el flujo real debe aceptar CORS (se verifica en la Fase 12). Regresión de las Fases 5–9 OK.
 
 ## Bloqueos
 
@@ -53,4 +56,4 @@
 
 ## Siguiente paso
 
-Fase 10: integración real con Power Automate (incluye probar «Abrir»/«Descargar» con enlaces reales de PDF, xlsx y docx).
+Fase 11: módulo de cargue (interfaz en modo demo) — botón «Cargar documento», formulario con los 4 casos (nuevo, nueva versión, anexo, variante), validaciones y `03_TRD.md` con el contrato JSON de los flujos F1, F2 y F3.

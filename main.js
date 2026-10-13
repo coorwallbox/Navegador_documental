@@ -2,7 +2,7 @@
    CONSULTA DOCUMENTAL
    main.js · Fase 1 · 2026
    Módulo principal de la aplicación.
-   Depende de: catalog.js, utils.js y demo-data.js (deben cargarse antes en el HTML)
+   Depende de: config.js, catalog.js, utils.js y demo-data.js (deben cargarse antes en el HTML)
 
    Flujo:
      1. DOMContentLoaded → App.init()
@@ -20,16 +20,18 @@ const App = (() => {
   /* ============================================================
      CONFIGURACIÓN
   ============================================================ */
+  // Valores de despliegue desde config.js (en el repositorio, vacíos = modo demo)
+  const DEPLOY = (typeof APP_CONFIG !== 'undefined') ? APP_CONFIG : {};
+
   const CONFIG = {
-    // URL del flujo que consulta los documentos del Excel en SharePoint.
-    // Se configura en la Fase 5 (integración real con Power Automate).
-    URL_DOCUMENTS: '[POWER_AUTOMATE_URL_DOCUMENTS]',
+    // URL del flujo F1 que lee el listado maestro (Excel en SharePoint)
+    URL_DOCUMENTS: DEPLOY.URL_DOCUMENTS || '',
 
     // Tiempo máximo de espera para la llamada a Power Automate (ms)
     TIMEOUT_MS: 30000,
 
-    // Modo demo: true = usa DEMO_DOCUMENTS en vez de llamar a Power Automate
-    MODO_DEMO: true,
+    // Modo demo: sin URL configurada se usan los datos de demo-data.js
+    MODO_DEMO: !DEPLOY.URL_DOCUMENTS,
   };
 
 
@@ -150,12 +152,12 @@ const App = (() => {
     try {
       let raw;
 
-      if (CONFIG.MODO_DEMO || CONFIG.URL_DOCUMENTS.startsWith('[')) {
+      if (CONFIG.MODO_DEMO) {
         await Utils.General.wait(600);
         raw = DEMO_DOCUMENTS;  // demo-data.js
         Utils.General.log('Documentos demo cargados:', raw.length);
       } else {
-        // Integración real — se implementa en la Fase 5.
+        // Integración real: flujo F1 de Power Automate
         raw = await _callPowerAutomate(CONFIG.URL_DOCUMENTS, 'POST', {});
       }
 

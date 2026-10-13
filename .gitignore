@@ -1,0 +1,5 @@
+# Configuración real (URL de los flujos de Power Automate): nunca al repositorio público
+config.local.json
+
+# Carpeta de publicación generada por tools/build_deploy.py (lleva la configuración real)
+dist/
