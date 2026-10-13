@@ -106,6 +106,7 @@ const DEMO_DOCUMENTS = (() => {
     }),
     row('TAL-RG-091', 'Formato de orden de trabajo de servicio', 'RG', 'TAL', 'VIGENTE', {
       ...RETENTION_RG, 'VERSIÓN': '6', 'FECHA DE VIGENCIA': '2026-07-01',
+      'UBICACIÓN': '#demo/TAL/TAL-RG-091 Formato de orden de trabajo de servicio V6.docx',
       'CARGO QUE ELABORA': 'Jefe de taller', 'CARGO QUE APRUEBA': 'Director de posventa',
     }),
     // Documento propio de una sola empresa: su propio consecutivo, sin prefijos

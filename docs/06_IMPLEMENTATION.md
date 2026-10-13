@@ -38,6 +38,7 @@ Decisiones aprobadas:
 - Catálogo de procesos (siglas, nombres y bandas) en un archivo propio `catalog.js`, con siglas y nombres, reemplazable sin tocar el resto.
 - Clave de un documento = **código + empresa**: puede haber varias filas con el mismo código y distinta EMPRESA; TODAS vale para las tres empresas.
 - Filtro por empresa: al elegir una empresa se muestran también los documentos con EMPRESA = TODAS.
+- Botón del archivo según su formato (decisión posterior, 2026-10-13): PDF → «Abrir» en pestaña nueva; cualquier otro formato → «Descargar» (en SharePoint con `?download=1`), con aviso de copia no controlada; sin extensión → «Abrir».
 - Solo datos de ejemplo inventados en el código (repositorio público).
 
 ## Fase 5 — Logo y favicon
@@ -68,6 +69,7 @@ Decisiones aprobadas:
 - [x] Ajuste pedido por el usuario al arrancar la fase (2026-10-13): la etiqueta «Nivel» pasa a «Nivel documental» (filtro y panel).
 - [x] Validación: todos los campos visibles («—» si vacío); navegación anexo ↔ principal y entre variantes; fecha vencida distinguible; la regla de estado se respeta en fila, panel y guarda defensiva; foco/Esc como hoy; los 3 estados de tabla siguen funcionando; 0 desbordamiento horizontal.
   - Resultado (2026-10-13, QA headless servido por HTTP local): 30/30 comprobaciones OK — tabla con Versión y Empresa (la variante muestra «Los Autos»); «Abrir» en filas solo para Vigente; panel con 6 secciones y 19 campos visibles con formato (`PR — Procedimiento`, `Táctico (nivel 2)`, `COM — Compras`, fecha larga, «—» si vacío); principal → anexo → principal y entre variantes LOS COCHES ↔ LOS AUTOS; al navegar el foco va al título y Esc devuelve el foco al «Ver más» original; fecha límite vencida con marca «Vencida» y en rojo, la por vencer sin marca; EN REVISIÓN con «Abrir» deshabilitado, aviso en el pie y guarda defensiva que lo bloquea aunque se fuerce el clic; vigente sin UBICACIÓN con aviso en el panel y al abrir; `openURL` abre en pestaña nueva (`_blank`, `noopener`) y en modo demo la apertura se simula; estados cargando / sin datos (carga forzada a fallar) / sin resultados, a 8 columnas; 0 desbordamiento en 375/768/1280 con el panel abierto; 0 errores de consola. Regresión de las Fases 5, 6 y 7: OK.
+  - **Ajuste posterior al cierre (2026-10-13), pedido por el usuario:** el botón depende del formato del archivo de UBICACIÓN — PDF → «Abrir» (pestaña nueva); cualquier otra extensión → «Descargar» (`Utils.General.downloadURL`: en SharePoint agrega `?download=1` y quita `?web=1`; aviso «copia no controlada»); sin extensión (enlace de compartir) → «Abrir». Datos demo con casos pdf, xlsx y docx. QA headless 11/11 (etiqueta por extensión en filas y panel, `aria-label`, simulación en demo, extracción de extensión con consulta/fragmento, `?download=1` solo en SharePoint) y regresión de las Fases 5–8 OK. Durante la prueba apareció y se corrigió un fallo propio del ajuste: las ubicaciones demo `#demo/…` perdían la extensión al cortar en `#`.
   - Fuera de la validación, decisiones de diseño: UBICACIÓN no se muestra como texto en el panel (es el destino de «Abrir»); el panel se arma desde una definición de secciones en `main.js` (`_renderDetailBody`) y cada valor conserva el id `detalle-<propiedad>`.
 
 ## Fase 9 — QA y accesibilidad
@@ -79,6 +81,7 @@ Decisiones aprobadas:
 
 - Reemplazar el modo demo por el flujo real que consulta el Excel en SharePoint.
 - Validación mínima: datos reales cargan correctamente end-to-end (búsqueda, filtro y descarga).
+- Validar con un enlace real de cada formato (PDF, xlsx, docx) del sitio de SharePoint de Calidad: el PDF se abre en el navegador y los editables se descargan con `?download=1` (depende de la configuración del sitio; no verificable con datos demo). Recomendación para el listado: UBICACIÓN con el enlace directo al archivo (con extensión), no el enlace de compartir.
 
 ## Fase 11 — Cierre (antes Fase 6)
 

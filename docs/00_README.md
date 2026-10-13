@@ -78,7 +78,7 @@ Consulta_Documental/
 - Enlace directo con filtros en la URL — `?proceso=TAL` (también `banda`, `nivel`, `tipo`, `empresa`, `estado`, `q`), sin distinguir mayúsculas ni tildes; un valor inexistente se ignora con aviso. La URL se actualiza al filtrar, para compartir la vista.
 - Tabla de resultados: Código, Nombre del documento, Tipo, Proceso, Versión, Empresa, Estado y acciones («Ver más», «Abrir»).
 - «Ver más» → panel de detalle deslizante (overlay + aside) con 6 secciones: Identificación (tipo, nivel documental, proceso, banda, empresa), Vigencia (estado, versión, fecha de vigencia, fecha límite de revisión — marcada «Vencida» si pasó), Responsables, Retención (tiempo, disposición final, fundamento), Documentos relacionados (documento principal, anexos y variantes por empresa, navegables dentro del panel) y Control de cambios / Observaciones.
-- «Abrir» (fila y panel) → abre el archivo de UBICACIÓN en una pestaña nueva (los enlaces de SharePoint ignoran el atributo `download`). Solo VIGENTE; aviso si un vigente no tiene UBICACIÓN. En modo demo la apertura se simula.
+- Botón del archivo (fila y panel), según la extensión de UBICACIÓN: **PDF → «Abrir»** en una pestaña nueva; **cualquier otro formato → «Descargar»** (en SharePoint se agrega `?download=1`; aviso de copia no controlada); sin extensión → «Abrir». Solo VIGENTE; aviso si un vigente no tiene UBICACIÓN. En modo demo la acción se simula.
 - Modo demo (datos de ejemplo embebidos) para desarrollar sin depender de Power Automate.
 - Acceso libre, sin selección de actor/rol.
 

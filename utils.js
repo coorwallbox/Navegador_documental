@@ -434,6 +434,50 @@ const Utils = (() => {
       window.open(url, '_blank', 'noopener');
     },
 
+    /**
+     * Extensión del archivo de una URL, en minúsculas ("" si no tiene).
+     * Ej.: ".../COM-RG-087 Formato V2.xlsx?web=1" → "xlsx"
+     */
+    fileExtension(url) {
+      // Se ignora un "#" inicial (ubicaciones demo "#demo/...") antes de quitar consulta y fragmento
+      const path = String(url ?? '').replace(/^#/, '').split(/[?#]/)[0];
+      const name = path.slice(path.lastIndexOf('/') + 1);
+      const dot = name.lastIndexOf('.');
+      return dot > 0 ? name.slice(dot + 1).toLowerCase() : '';
+    },
+
+    /**
+     * Acción del botón según el archivo (decisión 2026-10-13):
+     * PDF → 'open' (se consulta en el navegador); cualquier otra extensión →
+     * 'download' (editables para diligenciar). Sin extensión (ej. enlace de
+     * compartir de SharePoint) → 'open', que es lo seguro.
+     */
+    fileAction(url) {
+      const extension = General.fileExtension(url);
+      return extension && extension !== 'pdf' ? 'download' : 'open';
+    },
+
+    /**
+     * Descarga un archivo. En SharePoint agrega ?download=1 (y quita ?web=1)
+     * para que el servidor lo entregue como descarga en vez de abrirlo en Office web.
+     * @param {string} url
+     */
+    downloadURL(url) {
+      const target = new URL(url, window.location.href);
+      if (/\.sharepoint\.com$/i.test(target.hostname)) {
+        target.searchParams.delete('web');
+        target.searchParams.set('download', '1');
+      }
+      const link = document.createElement('a');
+      link.href = target.href;
+      link.download = '';
+      link.rel = 'noopener';
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+
     /** Determina si la aplicación está en modo de desarrollo. */
     isDevMode() {
       return (

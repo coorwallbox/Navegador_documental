@@ -425,8 +425,8 @@ const App = (() => {
             Ver más
           </button>
           <button type="button" class="btn btn--primario btn--sm" data-action="open" data-id="${doc._id}"
-            aria-label="Abrir ${escape(doc.code)}" ${openAttrs}>
-            Abrir
+            aria-label="${_fileActionLabel(doc)} ${escape(doc.code)}" ${openAttrs}>
+            ${_fileActionLabel(doc)}
           </button>
         </div>
       </td>
@@ -437,7 +437,12 @@ const App = (() => {
 
   /** Texto del motivo por el que un documento no se puede abrir. @private */
   function _notOpenableText() {
-    return `Solo se pueden abrir documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}".`;
+    return `Solo se pueden abrir o descargar documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}".`;
+  }
+
+  /** Texto del botón del archivo: "Abrir" (PDF o sin extensión) o "Descargar" (otros formatos). @private */
+  function _fileActionLabel(doc) {
+    return Utils.General.fileAction(doc.location) === 'download' ? 'Descargar' : 'Abrir';
   }
 
   /**
@@ -461,8 +466,9 @@ const App = (() => {
   }
 
   /**
-   * Abre el documento desde su UBICACIÓN en una pestaña nueva.
+   * Abre (PDF, en pestaña nueva) o descarga (otros formatos) el archivo de UBICACIÓN.
    * Solo VIGENTE; aviso si un vigente no tiene UBICACIÓN.
+   * (data-action="open" cubre ambas acciones.)
    * @private
    */
   function _handleOpen(doc) {
@@ -480,14 +486,21 @@ const App = (() => {
       return;
     }
 
-    // Modo demo: las ubicaciones de ejemplo no existen; se simula la apertura
+    const download = Utils.General.fileAction(doc.location) === 'download';
+
+    // Modo demo: las ubicaciones de ejemplo no existen; se simula la acción
     if (doc.location.startsWith('#demo/')) {
-      Utils.Toast.info(`Modo demo: se abriría "${doc.location.slice(6)}".`);
+      Utils.Toast.info(`Modo demo: se ${download ? 'descargaría' : 'abriría'} "${doc.location.slice(6)}".`);
       return;
     }
 
-    Utils.General.openURL(doc.location);
-    Utils.Toast.success(`Abriendo "${doc.documentName}"...`);
+    if (download) {
+      Utils.General.downloadURL(doc.location);
+      Utils.Toast.success(`Descargando "${doc.documentName}". Toda copia descargada es una copia no controlada.`);
+    } else {
+      Utils.General.openURL(doc.location);
+      Utils.Toast.success(`Abriendo "${doc.documentName}"...`);
+    }
   }
 
 
@@ -532,6 +545,7 @@ const App = (() => {
     DOM.btnOpenPanel.disabled = !canOpen;
     DOM.btnOpenPanel.setAttribute('aria-disabled', String(!canOpen));
     DOM.btnOpenPanel.title = canOpen ? '' : _notOpenableText();
+    DOM.btnOpenPanel.textContent = _fileActionLabel(doc);
 
     // Aviso visible en el pie: vigente sin UBICACIÓN o estado que no permite abrir
     let notice = '';

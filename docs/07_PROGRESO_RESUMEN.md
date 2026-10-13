@@ -36,6 +36,7 @@
 - Fase 6 validada con QA headless (2026-10-13): 20/20 comprobaciones del modelo (20 columnas, tolerancia de encabezados y fechas, códigos `SIGLA-TIPO-NNN`, variantes por código+empresa, anexos, bandas, cobertura de tipos y estados, badges, regla de descarga con EN REVISIÓN bloqueado), 0 errores de consola, 0 referencias a estados retirados, 0 coincidencias de códigos demo con el listado real. Regresión de la Fase 5 OK.
 - Fase 7 validada con QA headless (2026-10-13): 27/27 comprobaciones (parámetros de URL, búsqueda por nombre y código, filtros dependientes banda→proceso y nivel→tipo, empresa con TODAS, URL sincronizada, «Limpiar filtros», nivel en el panel, etiquetas y teclado, 0 desbordamiento en 375/768/1280, 0 errores). Se agregó el nivel documental a pedido del usuario. Regresión de las Fases 5 y 6 OK.
 - Fase 8 validada con QA headless (2026-10-13): 30/30 comprobaciones (tabla con Versión y Empresa, panel de 6 secciones con los 19 campos, navegación principal ↔ anexo y entre variantes, fecha límite vencida marcada, «Abrir» solo VIGENTE en fila/panel/guarda, aviso de vigente sin UBICACIÓN, pestaña nueva, 3 estados de tabla, foco/Esc, 0 desbordamiento con panel abierto en 375/768/1280, 0 errores). Etiqueta «Nivel documental» a pedido del usuario. Regresión de las Fases 5–7 OK.
+- Ajuste posterior al cierre de la Fase 8 (2026-10-13): PDF → «Abrir», otros formatos → «Descargar» (`?download=1` en SharePoint). QA 11/11 y regresión de las Fases 5–8 OK. Pendiente para la Fase 10: probarlo con enlaces reales (PDF, xlsx, docx).
 
 ## Bloqueos
 
