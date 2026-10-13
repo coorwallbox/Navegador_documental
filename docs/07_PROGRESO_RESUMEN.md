@@ -60,4 +60,4 @@
 
 ## Siguiente paso
 
-Fase 12: flujo F1 (lectura) con guía paso a paso y prueba de publicación interna. Necesita del usuario: confirmar licencia Premium de Power Automate, el listado en Excel formateado como tabla con los 20 encabezados, y acceso al sitio de SharePoint de Calidad.
+Fase 12: flujo F1 (lectura) con guía paso a paso y prueba de publicación interna. Necesita del usuario: confirmar licencia Premium de Power Automate y acceso al sitio de SharePoint de Calidad. El listado en Excel ya existe como tabla `ListadoMaestro` (migración del listado actual a las 20 columnas, generada fuera del repositorio, 2026-10-13). Se probó en local con la consulta, simulando la respuesta de F1 (todo texto, fechas como número de serie), a 375, 768 y 1280 px: 0 errores. Las filas sin nombre no se muestran; los códigos repetidos se muestran por separado. Antes de usarlo, Sistemas de Gestión depura los casos de su hoja «Revisar».

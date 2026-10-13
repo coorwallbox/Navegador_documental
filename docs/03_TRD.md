@@ -18,7 +18,7 @@
 | Pide la consulta | `POST URL_DOCUMENTS` con cuerpo `{}` y `Content-Type: application/json` |
 | Responde | `200` con `{ "value": [ fila, … ] }` (también se acepta un arreglo directo o `{ "body": [...] }`) |
 | Fila | Objeto con los 20 encabezados del listado maestro tal como están en la tabla de Excel (`CÓDIGO`, `NOMBRE DEL DOCUMENTO`, `TIPO`, `PROCESO (SIGLA)`, `BANDA DEL MAPA`, `VERSIÓN`, `FECHA DE VIGENCIA`, `ESTADO`, `FECHA LÍMITE DE REVISIÓN`, `EMPRESA`, `DOCUMENTO PRINCIPAL`, `UBICACIÓN`, `RETENCIÓN ARCHIVO DE GESTIÓN (AÑOS)`, `RETENCIÓN ARCHIVO CENTRAL (AÑOS)`, `DISPOSICIÓN FINAL`, `FUNDAMENTO DE LA RETENCIÓN`, `CARGO QUE ELABORA`, `CARGO QUE APRUEBA`, `CONTROL DE CAMBIOS`, `OBSERVACIONES`). Mapeo a propiedades internas: `Utils.Json.COLUMNS` |
-| Requisitos | Excel formateado como tabla; paginación activada en «Enumerar filas presentes en una tabla» (umbral ≥ 5000, el listado supera las 256 filas por defecto) |
+| Requisitos | Excel formateado como tabla, llamada `ListadoMaestro` (la generan `plantilla_listado.py`, en blanco, y `migrar_listado.py`, con el listado actual, en la carpeta local `auditoria/` del proyecto Mapa_de_procesos, fuera de Git); paginación activada en «Enumerar filas presentes en una tabla» (umbral ≥ 5000, el listado supera las 256 filas por defecto) |
 | Error | Cualquier respuesta no `2xx` o JSON inválido → la consulta muestra «sin datos» y un aviso |
 
 ## F2 — Recibir solicitud de cargue
