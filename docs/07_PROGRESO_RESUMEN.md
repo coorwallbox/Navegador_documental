@@ -49,8 +49,8 @@
 
 ## Bloqueos
 
-- Antes de cualquier `git push` (pendiente de decisión del usuario): los commits locales `51693f3`…`912630d` contienen 3 códigos reales del sistema documental (ya eliminados del commit actual; detalle en la búsqueda local, no se citan aquí). Publicarlos tal cual los dejaría en el historial del repositorio público.
+- Ninguno. (Resuelto 2026-10-13: el historial local de las Fases 5–9 se reescribió para quitar 3 códigos reales del sistema documental; 0 códigos reales en toda la rama. `git push` sigue requiriendo aprobación del usuario.)
 
 ## Siguiente paso
 
-Decidir qué hacer con el historial local antes de publicar; luego Fase 10: integración real con Power Automate (incluye probar «Abrir»/«Descargar» con enlaces reales de PDF, xlsx y docx).
+Fase 10: integración real con Power Automate (incluye probar «Abrir»/«Descargar» con enlaces reales de PDF, xlsx y docx).
