@@ -7,18 +7,12 @@
    Los valores reales los escribe tools/build_deploy.py en la carpeta
    de publicación (dist/) a partir de config.local.json, que está
    excluido de Git. No editar este archivo con URL reales.
+   La configuración del cargue (URL de F2) va aparte, en config-cargue.js,
+   que solo carga cargue.html: quien abre la consulta no la ve.
    Se carga antes que el resto de los scripts.
 ================================================================ */
 
 const APP_CONFIG = Object.freeze({
-  // F1 — leer el listado maestro (vacía = modo demo)
+  // F1 — leer el listado maestro (vacía = modo demo). La usan la consulta y la página de cargue.
   URL_DOCUMENTS: '',
-  // F2 — recibir solicitudes de cargue (Fase 11 en adelante)
-  URL_UPLOAD: '',
-  // Días calendario de la fecha límite de una solicitud de nueva versión
-  REVIEW_DAYS: 15,
-  // Tamaño máximo del archivo a cargar (MB)
-  MAX_UPLOAD_MB: 20,
-  // Dominios de correo aceptados en el cargue (vacío = sin restricción en el navegador)
-  ALLOWED_EMAIL_DOMAINS: [],
 });

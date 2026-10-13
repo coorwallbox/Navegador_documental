@@ -5,7 +5,7 @@
 
 ## Restricciones
 
-- El repositorio es público: ninguna URL de flujo, dato real ni dominio de la empresa va al código. La configuración real la escribe `tools/build_deploy.py` en `dist/`.
+- El repositorio es público: ninguna URL de flujo, dato real ni dominio de la empresa va al código. La configuración real la escribe `tools/build_deploy.py` en `dist/`: `config.js` (F1, ambas páginas) y `config-cargue.js` (F2, solo `cargue.html`).
 - La consulta se publica solo en un destino interno. La página y los flujos están en dominios distintos: **F1 y F2 deben aceptar CORS** (verificación previa `OPTIONS`, `Access-Control-Allow-Origin`).
 - Los disparadores HTTP (F1, F2) no autentican a quien llama. La seguridad del cargue depende de la aprobación de Sistemas de Gestión en F3 (con cuenta de la empresa) y de las validaciones de F2.
 - Formatos de fecha: ISO 8601 (`YYYY-MM-DD`; `requestedAt` con hora en UTC). La consulta también acepta `DD/MM/YYYY` y el número de serie de Excel en F1.
@@ -23,7 +23,7 @@
 
 ## F2 — Recibir solicitud de cargue
 
-**Disparador:** «Cuando se recibe una solicitud HTTP», método POST, `Content-Type: application/json`. La consulta lo llama con `POST URL_UPLOAD`.
+**Disparador:** «Cuando se recibe una solicitud HTTP», método POST, `Content-Type: application/json`. Lo llama la página independiente de cargue (`cargue.html`) con `POST URL_UPLOAD`; esa URL está en `config-cargue.js`, que la consulta no carga.
 
 **Cuerpo** (lo arma `Upload.buildPayload()` en `upload.js`):
 

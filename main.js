@@ -2,7 +2,7 @@
    CONSULTA DOCUMENTAL
    main.js · Fase 1 · 2026
    Módulo principal de la aplicación.
-   Depende de: config.js, catalog.js, utils.js, demo-data.js y upload.js (deben cargarse antes en el HTML)
+   Depende de: config.js, catalog.js, utils.js y demo-data.js (deben cargarse antes en el HTML)
 
    Flujo:
      1. DOMContentLoaded → App.init()
@@ -20,18 +20,9 @@ const App = (() => {
   /* ============================================================
      CONFIGURACIÓN
   ============================================================ */
-  // Valores de despliegue desde config.js (en el repositorio, vacíos = modo demo)
-  const DEPLOY = (typeof APP_CONFIG !== 'undefined') ? APP_CONFIG : {};
-
   const CONFIG = {
-    // URL del flujo F1 que lee el listado maestro (Excel en SharePoint)
-    URL_DOCUMENTS: DEPLOY.URL_DOCUMENTS || '',
-
-    // Tiempo máximo de espera para la llamada a Power Automate (ms)
-    TIMEOUT_MS: 30000,
-
-    // Modo demo: sin URL configurada se usan los datos de demo-data.js
-    MODO_DEMO: !DEPLOY.URL_DOCUMENTS,
+    // Modo demo: sin URL de F1 en config.js se usan los datos de demo-data.js (Utils.Data)
+    MODO_DEMO: Utils.Data.isDemo(),
   };
 
 
@@ -70,7 +61,6 @@ const App = (() => {
     Utils.Loader.init();
     Utils.Toast.init();
     Utils.Dialog.init();
-    Upload.init({ getDocuments: () => state.allDocuments });
     _bindEvents();
     await _loadDocuments();
     Utils.General.log('Aplicación inicializada · Modo demo:', CONFIG.MODO_DEMO);
@@ -144,18 +134,8 @@ const App = (() => {
     _showLoadingState();
 
     try {
-      let raw;
-
-      if (CONFIG.MODO_DEMO) {
-        await Utils.General.wait(600);
-        raw = DEMO_DOCUMENTS;  // demo-data.js
-        Utils.General.log('Documentos demo cargados:', raw.length);
-      } else {
-        // Integración real: flujo F1 de Power Automate
-        raw = await _callPowerAutomate(CONFIG.URL_DOCUMENTS, 'POST', {});
-      }
-
-      state.allDocuments = Utils.Json.normalizeDocuments(raw);
+      // Demo (demo-data.js) o flujo F1 de Power Automate, según config.js
+      state.allDocuments = await Utils.Data.loadDocuments();
       _populateFilterOptions();
       _applyURLFilters();
       _applyFilters();
@@ -167,35 +147,6 @@ const App = (() => {
     } finally {
       state.loadingDocuments = false;
     }
-  }
-
-  /**
-   * Realiza una llamada HTTP a un flujo de Power Automate.
-   * Reservado para la Fase 5 (integración real).
-   * @private
-   */
-  async function _callPowerAutomate(url, method = 'POST', body = null) {
-    const options = {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      signal:  AbortSignal.timeout(CONFIG.TIMEOUT_MS),
-    };
-
-    if (body && method !== 'GET') options.body = JSON.stringify(body);
-
-    const response = await fetch(url, options);
-    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-
-    const text = await response.text();
-    const data = Utils.Json.parseSafe(text);
-    if (data === null) throw new Error('La respuesta de Power Automate no es un JSON válido.');
-
-    if (data && typeof data === 'object' && !Array.isArray(data)) {
-      if (Array.isArray(data.value)) return data.value;
-      if (Array.isArray(data.body))  return data.body;
-    }
-
-    return data;
   }
 
   /* ============================================================

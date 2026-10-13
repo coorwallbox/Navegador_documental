@@ -3,9 +3,10 @@
 Uso:
     python tools/build_deploy.py [--config config.local.json] [--out dist]
 
-Copia la aplicación (HTML, CSS, JS e img/) a la carpeta de salida y escribe allí un
-config.js con los valores de config.local.json (excluido de Git). El config.js del
-repositorio no se toca: sigue vacío (modo demo). Falla si falta la configuración o si
+Copia la aplicación (consulta index.html y página de cargue cargue.html, CSS, JS e img/)
+a la carpeta de salida y escribe allí config.js (URL de F1) y config-cargue.js (URL de F2 y
+parámetros del cargue, que solo carga cargue.html) con los valores de config.local.json
+(excluido de Git). Los archivos de configuración del repositorio no se tocan: siguen vacíos. Falla si falta la configuración o si
 una URL no es válida (https, o http solo para pruebas en localhost).
 """
 import argparse
@@ -18,7 +19,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
-APP_FILES = ['index.html', 'styles.css', 'catalog.js', 'utils.js', 'demo-data.js', 'upload.js', 'main.js']
+APP_FILES = ['index.html', 'cargue.html', 'styles.css', 'catalog.js', 'utils.js', 'demo-data.js', 'upload.js', 'main.js']
 APP_DIRS = ['img']
 LOCAL_HOSTS = {'localhost', '127.0.0.1'}
 
@@ -76,12 +77,16 @@ def build(config, out):
     for name in APP_DIRS:
         # Sin copiar atributos (evita heredar solo lectura de la carpeta original)
         shutil.copytree(ROOT / name, out / name, copy_function=shutil.copyfile)
-    values = {k: config[k] for k in ('URL_DOCUMENTS', 'URL_UPLOAD', 'REVIEW_DAYS', 'MAX_UPLOAD_MB',
-                                     'ALLOWED_EMAIL_DOMAINS')}
-    body = ',\n'.join(f'  {k}: {json.dumps(v)}' for k, v in values.items())
-    (out / 'config.js').write_text(
-        '/* Generado por tools/build_deploy.py — configuración real. NO subir a Git. */\n'
-        f'const APP_CONFIG = Object.freeze({{\n{body},\n}});\n', encoding='utf-8')
+    # config.js (consulta y cargue): solo F1. config-cargue.js (solo cargue.html): F2 y sus parámetros.
+    _write_config(out / 'config.js', 'APP_CONFIG', config, ('URL_DOCUMENTS',))
+    _write_config(out / 'config-cargue.js', 'UPLOAD_CONFIG', config,
+                  ('URL_UPLOAD', 'REVIEW_DAYS', 'MAX_UPLOAD_MB', 'ALLOWED_EMAIL_DOMAINS'))
+
+
+def _write_config(path, name, config, keys):
+    body = ',\n'.join(f'  {k}: {json.dumps(config[k])}' for k in keys)
+    path.write_text('/* Generado por tools/build_deploy.py — configuración real. NO subir a Git. */\n'
+                    f'const {name} = Object.freeze({{\n{body},\n}});\n', encoding='utf-8')
 
 
 def main():

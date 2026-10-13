@@ -1,12 +1,14 @@
 /* ================================================================
    CONSULTA DOCUMENTAL
    upload.js · Fase 11 · 2026
-   Módulo de cargue de documentos (objeto global Upload).
+   Página independiente de cargue de documentos (cargue.html; objeto
+   global Upload). La consulta no la enlaza (ajuste 2026-10-13).
    Un líder de proceso envía una solicitud; Sistemas de Gestión la
    aprueba y el flujo F3 publica (ver docs/03_TRD.md, contrato F2).
    Casos: documento nuevo, nueva versión, anexo y variante por empresa.
    Sin URL_UPLOAD configurada, el envío se simula (modo demo).
-   Depende de: config.js, catalog.js y utils.js.
+   Depende de: config.js, config-cargue.js, catalog.js, utils.js y
+   demo-data.js (lista de documentos en modo demo).
 ================================================================ */
 
 const Upload = (() => {
@@ -16,7 +18,8 @@ const Upload = (() => {
   /* ============================================================
      CONFIGURACIÓN
   ============================================================ */
-  const DEPLOY = (typeof APP_CONFIG !== 'undefined') ? APP_CONFIG : {};
+  // Configuración propia del cargue (config-cargue.js; solo la carga cargue.html)
+  const DEPLOY = (typeof UPLOAD_CONFIG !== 'undefined') ? UPLOAD_CONFIG : {};
 
   const CONFIG = {
     URL_UPLOAD:      DEPLOY.URL_UPLOAD || '',
@@ -54,24 +57,39 @@ const Upload = (() => {
      1. INICIALIZACIÓN
   ============================================================ */
 
+  /** Punto de entrada de la página: carga el listado y deja el formulario listo. */
+  async function start() {
+    Utils.Loader.init();
+    Utils.Toast.init();
+    let documents = [];
+    Utils.Loader.show('Cargando el listado de documentos...');
+    try {
+      documents = await Utils.Data.loadDocuments();
+    } catch (error) {
+      Utils.General.logError('Upload.start', error);
+      Utils.Toast.error('No se pudo cargar el listado: solo podrás solicitar documentos nuevos. Intenta más tarde para los demás casos.');
+    } finally {
+      Utils.Loader.hide();
+    }
+    init({ getDocuments: () => documents });
+  }
+
   /**
    * @param {Object} options
-   * @param {Function} options.getDocuments — devuelve los documentos cargados (App)
+   * @param {Function} options.getDocuments — devuelve los documentos del listado
    */
   function init({ getDocuments }) {
     state.getDocuments = getDocuments;
     _cacheDOM();
     _populateStaticOptions();
     _bindEvents();
+    _reset();
   }
 
   function _cacheDOM() {
     const $ = (id) => document.getElementById(id);
     Object.assign(DOM, {
-      btnOpen:        $('btn-cargar'),
-      panel:          $('panel-cargue'),
-      btnClose:       $('btn-cerrar-cargue'),
-      btnCancel:      $('btn-cancelar-cargue'),
+      btnClear:       $('btn-cancelar-cargue'),
       btnSubmit:      $('btn-enviar-cargue'),
       btnAnother:     $('btn-otro-cargue'),
       form:           $('form-cargue'),
@@ -134,10 +152,8 @@ const Upload = (() => {
   }
 
   function _bindEvents() {
-    DOM.btnOpen.addEventListener('click', () => open());
-    DOM.btnClose.addEventListener('click', () => Utils.Dialog.close());
-    DOM.btnCancel.addEventListener('click', () => Utils.Dialog.close());
-    DOM.btnAnother.addEventListener('click', () => _reset());
+    DOM.btnClear.addEventListener('click', () => _reset(TYPES.NEW, true));
+    DOM.btnAnother.addEventListener('click', () => _reset(TYPES.NEW, true));
     DOM.form.addEventListener('submit', _handleSubmit);
     DOM.form.querySelectorAll('input[name="requestType"]').forEach((radio) =>
       radio.addEventListener('change', _applyRequestType));
@@ -154,28 +170,22 @@ const Upload = (() => {
      2. APERTURA Y ESTADO DEL FORMULARIO
   ============================================================ */
 
-  /** Abre el formulario (opcionalmente con un tipo de solicitud ya elegido). */
-  function open(requestType = TYPES.NEW) {
-    _reset(requestType);
-    Utils.Dialog.open(DOM.panel, {
-      initialFocus: DOM.form.querySelector('input[name="requestType"]:checked'),
-      returnFocus: DOM.btnOpen,
-    });
-  }
-
-  /** Deja el formulario vacío, en la vista de formulario. @private */
-  function _reset(requestType = TYPES.NEW) {
+  /**
+   * Deja el formulario vacío, en la vista de formulario.
+   * @param {string} [requestType]
+   * @param {boolean} [focus] — true si lo pidió el usuario (Limpiar / Cargar otro)
+   * @private
+   */
+  function _reset(requestType = TYPES.NEW, focus = false) {
     DOM.form.reset();
     DOM.form.hidden = false;
     DOM.result.hidden = true;
     DOM.btnSubmit.hidden = false;
+    DOM.btnClear.hidden = false;
     DOM.btnAnother.hidden = true;
-    DOM.btnCancel.textContent = 'Cancelar';
     DOM.form.querySelector(`input[name="requestType"][value="${requestType}"]`).checked = true;
     _applyRequestType();
-    if (!DOM.form.hidden && DOM.panel.classList.contains('activo')) {
-      DOM.form.querySelector('input[name="requestType"]:checked').focus();
-    }
+    if (focus) DOM.form.querySelector('input[name="requestType"]:checked').focus();
   }
 
   function _requestType() {
@@ -602,8 +612,8 @@ const Upload = (() => {
     DOM.form.hidden = true;
     DOM.result.hidden = false;
     DOM.btnSubmit.hidden = true;
+    DOM.btnClear.hidden = true;
     DOM.btnAnother.hidden = false;
-    DOM.btnCancel.textContent = 'Cerrar';
     DOM.result.querySelector('h3').focus();
     Utils.Toast.success(`Solicitud ${response.requestId} enviada a Sistemas de Gestión.`);
   }
@@ -612,6 +622,12 @@ const Upload = (() => {
   /* ============================================================
      API PÚBLICA
   ============================================================ */
-  return { init, open, proposedCode, buildPayload, TYPES };
+  return { start, init, proposedCode, buildPayload, TYPES };
 
 })();
+
+
+/* ================================================================
+   PUNTO DE ENTRADA (cargue.html)
+================================================================ */
+document.addEventListener('DOMContentLoaded', Upload.start);

@@ -51,6 +51,7 @@
   - [x] Regresión de las Fases 5–8: OK.
 - Fase 10 validada con QA headless (2026-10-13): 15/15 (script de despliegue y sus validaciones, modo demo sin configuración, ruta real con F1 simulado y 300 filas, error del flujo, repositorio sin URL, Git ignora la configuración real, 0 errores). Corregidos 2 fallos del script (solo lectura heredado de OneDrive; `URL_UPLOAD` opcional). Hallazgo: el flujo real debe aceptar CORS (se verifica en la Fase 12). Regresión de las Fases 5–9 OK.
 - Fase 11 validada con QA headless (2026-10-13): 45/45 (4 casos de cargue, precarga, vista previa del código, validaciones de campos, archivo y correo, envío demo, contrato F2 exacto con flujo simulado, error de F2, accesibilidad, 375/768/1280, 0 errores). `03_TRD.md` creado con los contratos F1, F2 y F3. Corregidos 2 fallos (atributo `hidden` anulado por CSS; errores que no se limpiaban). Regresión de las Fases 5–10 OK.
+- Ajuste posterior al cierre de la Fase 11 (2026-10-13): el cargue pasa a la página independiente `cargue.html` (la consulta no la muestra ni la enlaza) y su configuración (URL de F2) a `config-cargue.js`, que solo carga esa página. QA 50/50 y regresión de las Fases 5–10 OK.
 
 ## Bloqueos
 

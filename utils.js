@@ -5,10 +5,11 @@
    Expone el objeto global Utils con los siguientes submódulos:
      · Loader  — overlay de carga global
      · Toast   — sistema de notificaciones
-     · Dialog  — paneles laterales modales (detalle y cargue)
+     · Dialog  — panel lateral modal (detalle del documento)
      · Status  — los 4 estados de documento y la regla de descarga
      · Format  — presentación de fechas y retención
      · Json    — parseo y normalización de respuestas (20 columnas)
+     · Data    — carga del listado (demo o flujo F1), compartida por las dos páginas
      · Table   — utilidades sobre el array de documentos
      · General — funciones auxiliares de propósito general
    Depende de: catalog.js (debe cargarse antes en el HTML)
@@ -118,7 +119,7 @@ const Utils = (() => {
 
   /* ==============================================================
      2b. DIÁLOGOS (paneles laterales modales)
-     Un solo diálogo activo a la vez (detalle o cargue): overlay
+     Un solo diálogo activo a la vez: overlay
      compartido, fondo inerte, foco atrapado, Esc para cerrar y foco
      devuelto al elemento que lo abrió (Fase 9, generalizado en la 11).
   ============================================================== */
@@ -445,6 +446,59 @@ const Utils = (() => {
 
 
   /* ==============================================================
+     5b. DATOS DEL LISTADO
+     Carga compartida por la consulta y la página de cargue: modo demo
+     (demo-data.js) si no hay URL de F1 en config.js; si la hay, llama
+     al flujo F1 de Power Automate (contrato en docs/03_TRD.md).
+  ============================================================== */
+  const Data = {
+
+    TIMEOUT_MS: 30000,
+
+    /** true si no hay URL de F1 configurada (config.js del repositorio). */
+    isDemo() {
+      return !(typeof APP_CONFIG !== 'undefined' && APP_CONFIG.URL_DOCUMENTS);
+    },
+
+    /** Devuelve los documentos normalizados (lanza error si no se pueden cargar). */
+    async loadDocuments() {
+      let raw;
+      if (Data.isDemo()) {
+        await General.wait(600);
+        if (typeof DEMO_DOCUMENTS === 'undefined') throw new Error('No se cargaron los datos demo (demo-data.js).');
+        raw = DEMO_DOCUMENTS;
+        General.log('Documentos demo cargados:', raw.length);
+      } else {
+        raw = await Data.callFlow(APP_CONFIG.URL_DOCUMENTS, {});
+      }
+      return Json.normalizeDocuments(raw);
+    },
+
+    /**
+     * Llama a un flujo de Power Automate (POST JSON) y devuelve su respuesta.
+     * Acepta { value: [...] } o { body: [...] } (Excel Online) además de un arreglo directo.
+     */
+    async callFlow(url, body = {}) {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(Data.TIMEOUT_MS),
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const data = Json.parseSafe(await response.text());
+      if (data === null) throw new Error('La respuesta de Power Automate no es un JSON válido.');
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        if (Array.isArray(data.value)) return data.value;
+        if (Array.isArray(data.body))  return data.body;
+      }
+      return data;
+    },
+
+  };
+
+
+  /* ==============================================================
      6. UTILIDADES DE TABLA
      Operaciones sobre el array de documentos en memoria.
   ============================================================== */
@@ -595,6 +649,6 @@ const Utils = (() => {
   /* ==============================================================
      API PÚBLICA DEL MÓDULO
   ============================================================== */
-  return { Loader, Toast, Dialog, Status, Format, Json, Table, General };
+  return { Loader, Toast, Dialog, Status, Format, Json, Data, Table, General };
 
 })();
