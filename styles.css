@@ -497,7 +497,7 @@ button { cursor: pointer; }
 
 .tabla {
   width: 100%;
-  min-width: 720px;
+  min-width: 900px;
   border-collapse: collapse;
   font-size: var(--tamaño-sm);
 }
@@ -525,6 +525,8 @@ button { cursor: pointer; }
 .tabla__th--nombre  { min-width: 260px; }
 .tabla__th--tipo    { width: 130px; }
 .tabla__th--proceso { width: 170px; }
+.tabla__th--version { width: 80px; }
+.tabla__th--empresa { width: 140px; }
 .tabla__th--estado  { width: 110px; }
 .tabla__th--acciones{ width: 190px; }
 
@@ -543,7 +545,11 @@ button { cursor: pointer; }
   line-height: var(--altura-linea-ajustada);
 }
 
-.tabla__td--codigo { white-space: nowrap; }
+.tabla__td--codigo,
+.tabla__td--version,
+.tabla__td--empresa { white-space: nowrap; }
+.tabla__td--version { text-align: center; }
+.tabla__th--version { text-align: center; }
 
 .tabla__acciones {
   display: flex;
@@ -767,13 +773,73 @@ button { cursor: pointer; }
   align-self: flex-start;
 }
 
+/* Secciones del panel (Fase 8) */
+.panel-detalle__seccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-md);
+  padding-bottom: var(--espacio-lg);
+  border-bottom: 1px solid var(--color-borde);
+}
+.panel-detalle__seccion:last-child { border-bottom: none; padding-bottom: 0; }
+
+.panel-detalle__seccion-titulo {
+  font-size: var(--tamaño-sm);
+  font-weight: var(--peso-bold);
+  color: var(--color-primario);
+}
+
+.panel-detalle__valor--vencida { color: var(--color-error); font-weight: var(--peso-semi); }
+
+.badge-vencida {
+  display: inline-block;
+  margin-left: var(--espacio-xs);
+  padding: 1px 8px;
+  border-radius: var(--radio-pill);
+  font-size: var(--tamaño-xs);
+  font-weight: var(--peso-semi);
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.panel-detalle__lista {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-xs);
+}
+
+/* Enlace a otro documento (botón con apariencia de enlace) */
+.panel-detalle__enlace {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--color-primario);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.panel-detalle__enlace:hover { color: var(--color-primario-hover); }
+.panel-detalle__enlace:focus-visible { outline: 2px solid var(--color-primario); outline-offset: 2px; border-radius: 2px; }
+
+.panel-detalle__aviso {
+  margin-right: auto;
+  font-size: var(--tamaño-xs);
+  color: var(--color-advertencia);
+  font-weight: var(--peso-semi);
+}
+
 .panel-detalle__footer {
   flex-shrink: 0;
   padding: var(--espacio-md) var(--espacio-lg);
   border-top: 1px solid var(--color-borde);
   background: var(--color-superficie-alt);
   display: flex;
+  align-items: center;
   justify-content: flex-end;
+  gap: var(--espacio-md);
 }
 
 /* Bloquea el scroll del fondo mientras el panel está abierto */

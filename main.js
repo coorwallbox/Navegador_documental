@@ -93,19 +93,11 @@ const App = (() => {
     DOM.detailOverlay        = document.getElementById('detalle-overlay');
     DOM.detailPanel           = document.getElementById('panel-detalle');
     DOM.btnCerrarPanel       = document.getElementById('btn-cerrar-panel');
-    DOM.btnDescargarPanel    = document.getElementById('btn-descargar-panel');
+    DOM.btnOpenPanel         = document.getElementById('btn-abrir-panel');
+    DOM.detailBody           = document.getElementById('panel-detalle-cuerpo');
+    DOM.detailNotice         = document.getElementById('panel-detalle-aviso');
     DOM.detailTitulo         = document.getElementById('panel-detalle-titulo');
     DOM.detailCodigo         = document.getElementById('panel-detalle-codigo');
-    DOM.detailType           = document.getElementById('detalle-type');
-    DOM.detailLevel          = document.getElementById('detalle-level');
-    DOM.detailProcess        = document.getElementById('detalle-process');
-    DOM.detailStatus         = document.getElementById('detalle-status');
-    DOM.detailVersion        = document.getElementById('detalle-version');
-    DOM.detailEffectiveDate  = document.getElementById('detalle-effectiveDate');
-    DOM.detailCompany        = document.getElementById('detalle-company');
-    DOM.detailPreparedBy     = document.getElementById('detalle-preparedBy');
-    DOM.detailApprovedBy     = document.getElementById('detalle-approvedBy');
-    DOM.detailRetention      = document.getElementById('detalle-retention');
   }
 
   /** Registra todos los event listeners de la aplicación. @private */
@@ -124,7 +116,13 @@ const App = (() => {
     // Panel de detalle
     DOM.btnCerrarPanel.addEventListener('click', _closeDetailPanel);
     DOM.detailOverlay.addEventListener('click', _closeDetailPanel);
-    DOM.btnDescargarPanel.addEventListener('click', () => _handleDownload(state.detailDocument));
+    DOM.btnOpenPanel.addEventListener('click', () => _handleOpen(state.detailDocument));
+    // Anexos, documento principal y variantes: abren su detalle en el mismo panel
+    DOM.detailBody.addEventListener('click', (evento) => {
+      const link = evento.target.closest('[data-doc-id]');
+      const doc = link && state.allDocuments.find((d) => d._id === link.dataset.docId);
+      if (doc) _showDetail(doc, true);
+    });
 
     document.addEventListener('keydown', (evento) => {
       if (evento.key === 'Escape' && DOM.detailPanel.classList.contains('activo')) {
@@ -397,7 +395,7 @@ const App = (() => {
 
   /**
    * Crea el elemento <tr> para un documento.
-   * Columnas: Código · Nombre del documento · Tipo · Proceso · Estado · Acciones
+   * Columnas: Código · Nombre · Tipo · Proceso · Versión · Empresa · Estado · Acciones
    * @private
    */
   function _createRow(doc) {
@@ -406,17 +404,18 @@ const App = (() => {
     row.dataset.id = doc._id;
 
     const escape = Utils.General.escapeHTML;
-    const statusClass  = Utils.Status.badgeClass(doc.status);
-    const canDownload  = Utils.Status.isDownloadable(doc.status);
-    const downloadAttrs = canDownload
+    const statusClass = Utils.Status.badgeClass(doc.status);
+    const openAttrs = Utils.Status.isDownloadable(doc.status)
       ? ''
-      : `disabled aria-disabled="true" title="Solo se pueden descargar documentos en estado &quot;${Utils.Status.label(Utils.Status.VIGENTE)}&quot;."`;
+      : `disabled aria-disabled="true" title="${escape(_notOpenableText())}"`;
 
     row.innerHTML = `
       <td class="tabla__td tabla__td--codigo">${escape(doc.code)}</td>
       <td class="tabla__td tabla__td--nombre">${escape(doc.documentName)}</td>
       <td class="tabla__td tabla__td--tipo">${escape(Catalog.typeName(doc.type))}</td>
       <td class="tabla__td tabla__td--proceso">${escape(doc.process)}</td>
+      <td class="tabla__td tabla__td--version">${escape(doc.version)}</td>
+      <td class="tabla__td tabla__td--empresa">${escape(Catalog.companyLabel(doc.company))}</td>
       <td class="tabla__td tabla__td--estado">
         <span class="badge-estado ${statusClass}">${escape(Utils.Status.label(doc.status))}</span>
       </td>
@@ -425,8 +424,9 @@ const App = (() => {
           <button type="button" class="btn btn--secundario btn--sm" data-action="detail" data-id="${doc._id}">
             Ver más
           </button>
-          <button type="button" class="btn btn--primario btn--sm" data-action="download" data-id="${doc._id}" ${downloadAttrs}>
-            Descargar
+          <button type="button" class="btn btn--primario btn--sm" data-action="open" data-id="${doc._id}"
+            aria-label="Abrir ${escape(doc.code)}" ${openAttrs}>
+            Abrir
           </button>
         </div>
       </td>
@@ -435,11 +435,14 @@ const App = (() => {
     return row;
   }
 
+  /** Texto del motivo por el que un documento no se puede abrir. @private */
+  function _notOpenableText() {
+    return `Solo se pueden abrir documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}".`;
+  }
+
   /**
    * Maneja los clics en los botones de acción de cada fila
-   * (delegación de eventos sobre el tbody).
-   * "Ver más" abre el panel de detalle; la descarga real se implementa
-   * en la Fase 3 (por ahora queda como acción pendiente).
+   * (delegación de eventos sobre el tbody): "Ver más" y "Abrir".
    * @private
    */
   function _handleRowAction(evento) {
@@ -452,46 +455,39 @@ const App = (() => {
 
     if (action === 'detail') {
       _openDetailPanel(doc, button);
-    } else if (action === 'download') {
-      _handleDownload(doc);
+    } else if (action === 'open') {
+      _handleOpen(doc);
     }
   }
 
   /**
-   * Descarga el documento usando su columna `location` (Ubicación).
+   * Abre el documento desde su UBICACIÓN en una pestaña nueva.
+   * Solo VIGENTE; aviso si un vigente no tiene UBICACIÓN.
    * @private
    */
-  function _handleDownload(doc) {
+  function _handleOpen(doc) {
     if (!doc) return;
 
     // Guarda defensiva: el botón ya está deshabilitado para estos casos,
     // pero se valida también aquí por si se dispara la acción por otra vía.
     if (!Utils.Status.isDownloadable(doc.status)) {
-      Utils.Toast.warning(
-        `Solo se pueden descargar documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}". "${doc.documentName}" está en estado "${Utils.Status.label(doc.status)}".`
-      );
+      Utils.Toast.warning(`${_notOpenableText()} "${doc.documentName}" está en estado "${Utils.Status.label(doc.status)}".`);
       return;
     }
 
     if (!doc.location) {
-      Utils.Toast.warning(`"${doc.documentName}" no tiene una ubicación de descarga configurada.`);
+      Utils.Toast.warning(`"${doc.documentName}" (${doc.code}) es vigente pero no tiene UBICACIÓN en el listado maestro. Avisa a Sistemas de Gestión.`);
       return;
     }
 
-    Utils.General.downloadFromURL(doc.location, _buildDownloadFilename(doc));
-    Utils.Toast.success(`Descargando "${doc.documentName}"...`);
-  }
+    // Modo demo: las ubicaciones de ejemplo no existen; se simula la apertura
+    if (doc.location.startsWith('#demo/')) {
+      Utils.Toast.info(`Modo demo: se abriría "${doc.location.slice(6)}".`);
+      return;
+    }
 
-  /**
-   * Construye el nombre de archivo sugerido para la descarga,
-   * conservando la extensión de `location` cuando es reconocible.
-   * @private
-   */
-  function _buildDownloadFilename(doc) {
-    const extMatch = doc.location.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
-    const extension = extMatch ? `.${extMatch[1]}` : '';
-    const safeName = doc.documentName.replace(/[\\/:*?"<>|]/g, '').trim();
-    return `${doc.code}_${safeName}${extension}`;
+    Utils.General.openURL(doc.location);
+    Utils.Toast.success(`Abriendo "${doc.documentName}"...`);
   }
 
 
@@ -507,31 +503,8 @@ const App = (() => {
    *   para devolverle el foco al cerrar
    */
   function _openDetailPanel(doc, triggerElement) {
-    state.detailDocument = doc;
     state.lastFocusedElement = triggerElement ?? document.activeElement;
-
-    DOM.detailTitulo.textContent      = doc.documentName;
-    DOM.detailCodigo.textContent      = doc.code;
-    DOM.detailType.textContent        = Catalog.typeName(doc.type) || '—';
-    const level = Catalog.levelOf(doc.type);
-    DOM.detailLevel.textContent       = level ? `${level.name} (nivel ${level.code})` : '—';
-    DOM.detailProcess.textContent     = doc.process || '—';
-    DOM.detailStatus.textContent      = Utils.Status.label(doc.status) || '—';
-    DOM.detailStatus.className        = `badge-estado ${Utils.Status.badgeClass(doc.status)}`;
-    DOM.detailVersion.textContent     = doc.version || '—';
-    DOM.detailEffectiveDate.textContent = Utils.Format.dateLong(doc.effectiveDate) || '—';
-    DOM.detailCompany.textContent     = doc.company || '—';
-    DOM.detailPreparedBy.textContent  = doc.preparedBy || '—';
-    DOM.detailApprovedBy.textContent  = doc.approvedBy || '—';
-    DOM.detailRetention.textContent   =
-      Utils.Format.retention(doc.retentionManagementYears, doc.retentionCentralYears) || '—';
-
-    const canDownload = Utils.Status.isDownloadable(doc.status);
-    DOM.btnDescargarPanel.disabled = !canDownload;
-    DOM.btnDescargarPanel.setAttribute('aria-disabled', String(!canDownload));
-    DOM.btnDescargarPanel.title = canDownload
-      ? ''
-      : `Solo se pueden descargar documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}".`;
+    _showDetail(doc, false);
 
     DOM.detailOverlay.classList.add('activo');
     DOM.detailOverlay.setAttribute('aria-hidden', 'false');
@@ -543,10 +516,130 @@ const App = (() => {
   }
 
   /**
+   * Muestra un documento en el panel (al abrirlo o al navegar a un anexo,
+   * al documento principal o a una variante).
+   * @private
+   * @param {Object} doc
+   * @param {boolean} fromNavigation — true si viene de un enlace del panel
+   */
+  function _showDetail(doc, fromNavigation) {
+    state.detailDocument = doc;
+    DOM.detailTitulo.textContent = doc.documentName;
+    DOM.detailCodigo.textContent = doc.code;
+    _renderDetailBody(doc);
+
+    const canOpen = Utils.Status.isDownloadable(doc.status);
+    DOM.btnOpenPanel.disabled = !canOpen;
+    DOM.btnOpenPanel.setAttribute('aria-disabled', String(!canOpen));
+    DOM.btnOpenPanel.title = canOpen ? '' : _notOpenableText();
+
+    // Aviso visible en el pie: vigente sin UBICACIÓN o estado que no permite abrir
+    let notice = '';
+    if (canOpen && !doc.location) notice = 'Vigente sin UBICACIÓN registrada.';
+    else if (!canOpen) notice = _notOpenableText();
+    DOM.detailNotice.textContent = notice;
+    DOM.detailNotice.hidden = !notice;
+
+    if (fromNavigation) {
+      DOM.detailBody.scrollTop = 0;
+      DOM.detailTitulo.setAttribute('tabindex', '-1');
+      DOM.detailTitulo.focus();
+    }
+  }
+
+  /** Documentos relacionados: principal (si es anexo), anexos y variantes por empresa. @private */
+  function _relatedDocuments(doc) {
+    const all = state.allDocuments;
+    // Principal: si tiene variantes, la de la misma empresa o la de TODAS
+    const parents = doc.parentCode ? all.filter((d) => d.code === doc.parentCode) : [];
+    const parent = parents.find((d) => d.company === doc.company)
+      || parents.find((d) => d.company === Catalog.COMPANY_ALL) || parents[0] || null;
+    // Anexos: uno por código (si el anexo tiene variantes se navega a ellas desde su detalle)
+    const annexes = all.filter((d) => d.parentCode === doc.code)
+      .filter((d, i, list) => list.findIndex((x) => x.code === d.code) === i);
+    const variants = all.filter((d) => d.code === doc.code && d._id !== doc._id);
+    return { parent, annexes, variants };
+  }
+
+  /** Construye las secciones del panel de detalle. @private */
+  function _renderDetailBody(doc) {
+    const escape = Utils.General.escapeHTML;
+    const dash = '—';
+    const level = Catalog.levelOf(doc.type);
+    const processName = Catalog.processName(doc.process);
+    const band = Catalog.BANDS.find((b) => b.code === doc.band);
+    const deadlinePast = Utils.Format.isPast(doc.reviewDeadline);
+    const { parent, annexes, variants } = _relatedDocuments(doc);
+
+    const text = (value) => escape(value || dash);
+    const docLink = (d, label) =>
+      `<button type="button" class="panel-detalle__enlace" data-doc-id="${d._id}">${escape(label)}</button>`;
+    const linkList = (docs, labelOf, emptyText) => docs.length
+      ? `<ul class="panel-detalle__lista">${docs.map((d) => `<li>${docLink(d, labelOf(d))}</li>`).join('')}</ul>`
+      : escape(emptyText);
+
+    const deadline = doc.reviewDeadline
+      ? `${escape(Utils.Format.dateLong(doc.reviewDeadline))}${deadlinePast
+        ? ' <span class="badge-vencida">Vencida</span>' : ''}`
+      : dash;
+
+    // [título de sección, [[clave, etiqueta, html del valor]]]
+    const sections = [
+      ['Identificación', [
+        ['type',    'Tipo',              text(doc.type ? `${doc.type} — ${Catalog.typeName(doc.type)}` : '')],
+        ['level',   'Nivel documental',  text(level ? `${level.name} (nivel ${level.code})` : '')],
+        ['process', 'Proceso',           text(processName ? `${doc.process} — ${processName}` : doc.process)],
+        ['band',    'Banda del mapa',    text(band ? band.name : doc.band)],
+        ['company', 'Empresa',           text(Catalog.companyLabel(doc.company))],
+      ]],
+      ['Vigencia', [
+        ['status',         'Estado',                   `<span class="badge-estado ${Utils.Status.badgeClass(doc.status)}">${text(Utils.Status.label(doc.status))}</span>`],
+        ['version',        'Versión',                  text(doc.version)],
+        ['effectiveDate',  'Fecha de vigencia',        text(Utils.Format.dateLong(doc.effectiveDate))],
+        ['reviewDeadline', 'Fecha límite de revisión', deadline],
+      ]],
+      ['Responsables', [
+        ['preparedBy', 'Cargo que elabora', text(doc.preparedBy)],
+        ['approvedBy', 'Cargo que aprueba', text(doc.approvedBy)],
+      ]],
+      ['Retención', [
+        ['retention',        'Tiempo de retención',        text(Utils.Format.retention(doc.retentionManagementYears, doc.retentionCentralYears))],
+        ['finalDisposition', 'Disposición final',          text(doc.finalDisposition)],
+        ['retentionBasis',   'Fundamento de la retención', text(doc.retentionBasis)],
+      ]],
+      ['Documentos relacionados', [
+        ['parentCode', 'Documento principal',
+          parent ? docLink(parent, `${parent.code} · ${parent.documentName}`) : text(doc.parentCode)],
+        ['annexes', 'Anexos', linkList(annexes, (d) => `${d.code} · ${d.documentName}`, 'Ninguno')],
+        ['variants', 'Variantes por empresa',
+          linkList(variants, (d) => `${Catalog.companyLabel(d.company)} · versión ${d.version || dash}`, 'Ninguna')],
+      ]],
+      ['Control de cambios y observaciones', [
+        ['changeLog', 'Control de cambios', text(doc.changeLog)],
+        ['notes',     'Observaciones',      text(doc.notes)],
+      ]],
+    ];
+
+    DOM.detailBody.innerHTML = sections.map(([title, fields]) => `
+      <section class="panel-detalle__seccion">
+        <h3 class="panel-detalle__seccion-titulo">${escape(title)}</h3>
+        ${fields.map(([key, label, value]) => `
+          <div class="panel-detalle__campo">
+            <span class="panel-detalle__etiqueta">${escape(label)}</span>
+            <div id="detalle-${key}" class="panel-detalle__valor">${value}</div>
+          </div>`).join('')}
+      </section>`).join('');
+
+    const deadlineField = document.getElementById('detalle-reviewDeadline');
+    if (deadlinePast) deadlineField.classList.add('panel-detalle__valor--vencida');
+  }
+
+  /**
    * Cierra el panel de detalle y devuelve el foco al elemento que lo abrió.
    * @private
    */
   function _closeDetailPanel() {
+    DOM.detailTitulo.removeAttribute('tabindex');
     DOM.detailOverlay.classList.remove('activo');
     DOM.detailOverlay.setAttribute('aria-hidden', 'true');
     DOM.detailPanel.classList.remove('activo');

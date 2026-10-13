@@ -113,7 +113,7 @@
               <select id="select-banda" class="campo__input campo__input--select" data-param="banda"></select>
             </div>
             <div class="campo">
-              <label for="select-nivel" class="campo__label">Nivel</label>
+              <label for="select-nivel" class="campo__label">Nivel documental</label>
               <select id="select-nivel" class="campo__input campo__input--select" data-param="nivel"></select>
             </div>
             <div class="campo">
@@ -149,6 +149,8 @@
                 <th class="tabla__th tabla__th--nombre" scope="col">Nombre del documento</th>
                 <th class="tabla__th tabla__th--tipo" scope="col">Tipo</th>
                 <th class="tabla__th tabla__th--proceso" scope="col">Proceso</th>
+                <th class="tabla__th tabla__th--version" scope="col">Versión</th>
+                <th class="tabla__th tabla__th--empresa" scope="col">Empresa</th>
                 <th class="tabla__th tabla__th--estado" scope="col">Estado</th>
                 <th class="tabla__th tabla__th--acciones" scope="col">
                   <span class="sr-only">Acciones</span>
@@ -160,7 +162,7 @@
 
               <!-- Estado: cargando -->
               <tr id="fila-cargando" class="tabla__fila-estado tabla__fila-estado--oculta">
-                <td colspan="6" class="tabla__celda-estado">
+                <td colspan="8" class="tabla__celda-estado">
                   <div class="estado-tabla">
                     <div class="skeleton-loader" aria-label="Cargando documentos...">
                       <div class="skeleton-loader__linea"></div>
@@ -173,7 +175,7 @@
 
               <!-- Estado: sin datos (error de carga) -->
               <tr id="fila-sin-datos" class="tabla__fila-estado tabla__fila-estado--oculta">
-                <td colspan="6" class="tabla__celda-estado">
+                <td colspan="8" class="tabla__celda-estado">
                   <div class="estado-tabla">
                     <svg class="estado-tabla__icono" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -185,7 +187,7 @@
 
               <!-- Estado: sin resultados de búsqueda/filtro -->
               <tr id="fila-sin-resultados" class="tabla__fila-estado tabla__fila-estado--oculta">
-                <td colspan="6" class="tabla__celda-estado">
+                <td colspan="8" class="tabla__celda-estado">
                   <div class="estado-tabla">
                     <svg class="estado-tabla__icono" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -235,52 +237,13 @@
       </button>
     </header>
 
-    <div class="panel-detalle__cuerpo">
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Tipo</span>
-        <span id="detalle-type" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Nivel</span>
-        <span id="detalle-level" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Proceso</span>
-        <span id="detalle-process" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Estado</span>
-        <span id="detalle-status" class="badge-estado"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Versión</span>
-        <span id="detalle-version" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Fecha de vigencia</span>
-        <span id="detalle-effectiveDate" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Empresa</span>
-        <span id="detalle-company" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Cargo que elabora</span>
-        <span id="detalle-preparedBy" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Cargo que aprueba</span>
-        <span id="detalle-approvedBy" class="panel-detalle__valor"></span>
-      </div>
-      <div class="panel-detalle__campo">
-        <span class="panel-detalle__etiqueta">Retención</span>
-        <span id="detalle-retention" class="panel-detalle__valor"></span>
-      </div>
-    </div>
+    <!-- Cuerpo del panel: secciones generadas por main.js (_renderDetailBody) -->
+    <div id="panel-detalle-cuerpo" class="panel-detalle__cuerpo"></div>
 
     <footer class="panel-detalle__footer">
-      <button id="btn-descargar-panel" class="btn btn--primario" type="button" data-action="download">
-        Descargar
+      <p id="panel-detalle-aviso" class="panel-detalle__aviso" hidden></p>
+      <button id="btn-abrir-panel" class="btn btn--primario" type="button" data-action="open">
+        Abrir
       </button>
     </footer>
   </aside>

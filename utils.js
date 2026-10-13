@@ -204,6 +204,17 @@ const Utils = (() => {
       }
     },
 
+    /** Fecha de hoy en ISO "YYYY-MM-DD" (hora local). */
+    todayISO() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
+
+    /** Indica si una fecha ISO ya pasó (anterior a hoy). */
+    isPast(isoDate) {
+      return Boolean(isoDate) && /^\d{4}-\d{2}-\d{2}$/.test(isoDate) && isoDate < Format.todayISO();
+    },
+
     /**
      * Texto de retención a partir de los años en archivo de gestión y central.
      * Ejemplo: ("2", "8") → "2 años en gestión + 8 en central"
@@ -415,20 +426,12 @@ const Utils = (() => {
     },
 
     /**
-     * Dispara la descarga de un archivo desde una URL en el navegador.
-     * Crea un enlace temporal con el atributo `download` y simula el clic.
-     * @param {string} url — ubicación del archivo (ej. enlace de SharePoint)
-     * @param {string} filename — nombre sugerido para el archivo descargado
+     * Abre un archivo en una pestaña nueva. Se abre en vez de descargar porque
+     * los enlaces de SharePoint son de otro dominio e ignoran el atributo `download`.
+     * @param {string} url — ubicación del archivo (columna UBICACIÓN)
      */
-    downloadFromURL(url, filename) {
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = filename;
-      link.rel = 'noopener';
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    openURL(url) {
+      window.open(url, '_blank', 'noopener');
     },
 
     /** Determina si la aplicación está en modo de desarrollo. */

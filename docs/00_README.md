@@ -3,7 +3,7 @@ tecnologia: Web
 tipo: entregable
 proyecto: Consulta_Documental
 estado: pendiente
-estado_resumen: "Fase 8 pendiente (tabla y panel de detalle)"
+estado_resumen: "Fase 9 pendiente (QA y accesibilidad)"
 stack: "HTML + CSS + JS vainilla"
 descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
 aliases: [Consulta_Documental]
@@ -74,11 +74,11 @@ Consulta_Documental/
 ## Funcionalidades principales (previstas)
 
 - Búsqueda por nombre o código del documento (sin distinguir mayúsculas ni tildes).
-- Filtros opcionales y combinables: proceso («TAL — Taller», agrupado por banda), banda del mapa, nivel (Estratégico, Táctico, Operativo, Evidencia — se deduce del tipo), tipo, empresa (incluye siempre los documentos de TODAS) y estado. La banda acota el proceso y el nivel acota el tipo. Botón «Limpiar filtros».
+- Filtros opcionales y combinables: proceso («TAL — Taller», agrupado por banda), banda del mapa, nivel documental (Estratégico, Táctico, Operativo, Evidencia — se deduce del tipo), tipo, empresa (incluye siempre los documentos de TODAS) y estado. La banda acota el proceso y el nivel acota el tipo. Botón «Limpiar filtros».
 - Enlace directo con filtros en la URL — `?proceso=TAL` (también `banda`, `nivel`, `tipo`, `empresa`, `estado`, `q`), sin distinguir mayúsculas ni tildes; un valor inexistente se ignora con aviso. La URL se actualiza al filtrar, para compartir la vista.
-- Tabla de resultados resumen: Código, Nombre del documento, Tipo, Proceso, Estado, Descargar.
-- Botón "Ver más" por fila → panel de detalle deslizante (overlay + aside) con el resto de columnas: Versión, Fecha de emisión, Fecha de aprobación, Responsable, Usuarios/áreas aplicables, Tiempo de retención.
-- Botón "Descargar" por fila → abre/descarga el archivo desde `location` (enlace/ruta SharePoint).
+- Tabla de resultados: Código, Nombre del documento, Tipo, Proceso, Versión, Empresa, Estado y acciones («Ver más», «Abrir»).
+- «Ver más» → panel de detalle deslizante (overlay + aside) con 6 secciones: Identificación (tipo, nivel documental, proceso, banda, empresa), Vigencia (estado, versión, fecha de vigencia, fecha límite de revisión — marcada «Vencida» si pasó), Responsables, Retención (tiempo, disposición final, fundamento), Documentos relacionados (documento principal, anexos y variantes por empresa, navegables dentro del panel) y Control de cambios / Observaciones.
+- «Abrir» (fila y panel) → abre el archivo de UBICACIÓN en una pestaña nueva (los enlaces de SharePoint ignoran el atributo `download`). Solo VIGENTE; aviso si un vigente no tiene UBICACIÓN. En modo demo la apertura se simula.
 - Modo demo (datos de ejemplo embebidos) para desarrollar sin depender de Power Automate.
 - Acceso libre, sin selección de actor/rol.
 
@@ -95,14 +95,14 @@ Consulta_Documental/
 
 Los 4 estados de la propuesta (`Utils.Status` en `utils.js`, única fuente de verdad; el dato va en mayúsculas y se muestra en minúsculas con `Utils.Status.label`):
 
-| Estado | Color de badge | ¿Permite descarga? |
+| Estado | Color de badge | ¿Permite abrir/descargar? |
 |---|---|---|
 | VIGENTE | Verde | Sí |
 | EN REVISIÓN | Ámbar | No (decisión 2026-10-13) |
 | OBSOLETO | Rojo | No |
 | ELIMINADO | Rojo oscuro | No |
 
-EN REVISIÓN reemplaza a «Por revisar» y «Desactualizado» y lleva FECHA LÍMITE DE REVISIÓN. Solo los documentos **VIGENTE** pueden descargarse; para el resto el botón queda **deshabilitado** (visible, atenuado, con tooltip). La regla vive en `Utils.Status.isDownloadable()` y se valida también dentro de `_handleDownload` como guarda defensiva.
+EN REVISIÓN reemplaza a «Por revisar» y «Desactualizado» y lleva FECHA LÍMITE DE REVISIÓN. Solo los documentos **VIGENTE** pueden abrirse; para el resto el botón «Abrir» queda **deshabilitado** (visible, atenuado, con tooltip y aviso en el pie del panel). La regla vive en `Utils.Status.isDownloadable()` y se valida también dentro de `_handleOpen` como guarda defensiva.
 
 ## Catálogos
 
