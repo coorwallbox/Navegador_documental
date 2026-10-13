@@ -984,6 +984,15 @@ body.sin-scroll { overflow: hidden; }
 .form-cargue__grupo > legend.sr-only { float: none; width: 1px; margin: -1px; }
 
 /* --- Stepper (ds-stepper de Design_System_Core, tokens en ds/) --- */
+/* Línea punteada centrada con el círculo: relleno del encabezado + su borde (1px) + el del círculo (1px)
+   + medio círculo − media línea. El token original (14px) la dejaba ~10px a la izquierda. */
+.form-cargue__pasos {
+  --stepper-connector-left: calc(var(--stepper-header-padding) + 2px + var(--stepper-circle-size) / 2 - var(--stepper-connector-width) / 2);
+}
+/* El paso actual tiene el borde del círculo de 2px: su centro queda 1px más a la derecha */
+.form-cargue__pasos ds-step[state="current"] {
+  --stepper-connector-left: calc(var(--stepper-header-padding) + 3px + var(--stepper-circle-size) / 2 - var(--stepper-connector-width) / 2);
+}
 .form-cargue__pasos ds-step:not(:last-child) { margin-bottom: var(--espacio-xs); }
 .form-cargue__paso-acciones {
   display: flex;
