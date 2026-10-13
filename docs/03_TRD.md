@@ -86,7 +86,7 @@
    - `RETIRE`: sin código nuevo.
 4. Archivo (salvo `RETIRE`): renombrar «CÓDIGO Nombre Vn.ext» (variante: « - EMPRESA» al final) y moverlo a la carpeta del proceso (banda / grupo / «SIGLA - Nombre»).
 5. `NEW_VERSION`: mover la versión anterior a `_Obsoletos` del proceso. `RETIRE`: mover el archivo vigente a `_Obsoletos`; los anexos vigentes del documento los decide SG en la misma aprobación.
-6. Listado — FECHA DE VIGENCIA = fecha de aprobación en todos los casos que publican; UBICACIÓN = enlace directo al archivo (con extensión); CONTROL DE CAMBIOS = `AAAA-MM-DD · vN → vN+1 · descripción` (en `NEW` y `ANNEX`: `AAAA-MM-DD · v1 · Creación: motivo`; en `VARIANT`: `AAAA-MM-DD · Variante EMPRESA · descripción`); OBSERVACIONES no se toca:
+6. Listado — FECHA DE VIGENCIA = fecha de aprobación en todos los casos que publican; UBICACIÓN = enlace directo al archivo (con extensión; si el formato existe en PDF y en editable, al editable, que es el que se diligencia; el PDF queda en la misma carpeta); CONTROL DE CAMBIOS = `AAAA-MM-DD · vN → vN+1 · descripción` (en `NEW` y `ANNEX`: `AAAA-MM-DD · v1 · Creación: motivo`; en `VARIANT`: `AAAA-MM-DD · Variante EMPRESA · descripción`); OBSERVACIONES no se toca:
    - `NEW` y `ANNEX`: agregar fila VIGENTE con todas las columnas de la solicitud (BANDA según el proceso; DOCUMENTO PRINCIPAL en `ANNEX`).
    - `VARIANT`: agregar fila copiando las columnas de la fila base y cambiando EMPRESA, UBICACIÓN, FECHA DE VIGENCIA y CONTROL DE CAMBIOS.
    - `NEW_VERSION`: actualizar la fila (código + empresa): VERSIÓN, FECHA DE VIGENCIA, ESTADO = VIGENTE, FECHA LÍMITE vacía, UBICACIÓN, CONTROL DE CAMBIOS y, si el líder los cambió, NOMBRE, CARGO QUE ELABORA, CARGO QUE APRUEBA y la retención.
