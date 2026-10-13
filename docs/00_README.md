@@ -3,7 +3,7 @@ tecnologia: Web
 tipo: entregable
 proyecto: Consulta_Documental
 estado: pendiente
-estado_resumen: "Fase 9 pendiente (QA y accesibilidad)"
+estado_resumen: "Fase 10 pendiente (integración real con Power Automate)"
 stack: "HTML + CSS + JS vainilla"
 descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
 aliases: [Consulta_Documental]

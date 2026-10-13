@@ -15,7 +15,8 @@
 - Fase 6 (Modelo de datos de la propuesta): **completa**.
 - Fase 7 (Filtros, búsqueda y enlace por URL, + nivel documental): **completa**.
 - Fase 8 (Tabla y panel de detalle): **completa**.
-- Fase 9 (QA y accesibilidad): pendiente de iniciar.
+- Fase 9 (QA y accesibilidad): **completa**.
+- Fase 10 (Integración real con Power Automate): pendiente de iniciar.
 
 ## Validación
 
@@ -37,11 +38,19 @@
 - Fase 7 validada con QA headless (2026-10-13): 27/27 comprobaciones (parámetros de URL, búsqueda por nombre y código, filtros dependientes banda→proceso y nivel→tipo, empresa con TODAS, URL sincronizada, «Limpiar filtros», nivel en el panel, etiquetas y teclado, 0 desbordamiento en 375/768/1280, 0 errores). Se agregó el nivel documental a pedido del usuario. Regresión de las Fases 5 y 6 OK.
 - Fase 8 validada con QA headless (2026-10-13): 30/30 comprobaciones (tabla con Versión y Empresa, panel de 6 secciones con los 19 campos, navegación principal ↔ anexo y entre variantes, fecha límite vencida marcada, «Abrir» solo VIGENTE en fila/panel/guarda, aviso de vigente sin UBICACIÓN, pestaña nueva, 3 estados de tabla, foco/Esc, 0 desbordamiento con panel abierto en 375/768/1280, 0 errores). Etiqueta «Nivel documental» a pedido del usuario. Regresión de las Fases 5–7 OK.
 - Ajuste posterior al cierre de la Fase 8 (2026-10-13): PDF → «Abrir», otros formatos → «Descargar» (`?download=1` en SharePoint). QA 11/11 y regresión de las Fases 5–8 OK. Pendiente para la Fase 10: probarlo con enlaces reales (PDF, xlsx, docx).
+- Fase 9 validada (2026-10-13). Checklist de accesibilidad y QA (23/23, QA headless):
+  - [x] Contraste AA en vista principal, sin resultados, panel y avisos (corregidos 7 tipos de texto con tokens `--color-*-texto`).
+  - [x] Estructura: `lang="es"`, un `h1`, regiones, botones con nombre, `alt`, etiquetas, `scope`, `aria-live` en contador y avisos, panel como diálogo modal con título.
+  - [x] Teclado: foco visible en cada parada, foco atrapado en el panel, fondo inerte mientras está abierto, Esc devuelve el foco.
+  - [x] Reflujo y zoom: 320/375/768/1280 px sin desbordamiento, texto al 200 % sin recortes, logo ≥ 180 px.
+  - [x] Movimiento reducido respetado.
+  - [x] Datos reales: 0 coincidencias en el commit actual (códigos y nombres del listado real, búsqueda local).
+  - [x] Regresión de las Fases 5–8: OK.
 
 ## Bloqueos
 
-- Ninguno.
+- Antes de cualquier `git push` (pendiente de decisión del usuario): los commits locales `51693f3`…`912630d` contienen 3 códigos reales del sistema documental (ya eliminados del commit actual; detalle en la búsqueda local, no se citan aquí). Publicarlos tal cual los dejaría en el historial del repositorio público.
 
 ## Siguiente paso
 
-Iniciar Fase 9: QA y accesibilidad — contraste, orden de foco, lectores de pantalla en los 3 anchos y comprobación de que el repositorio público no contiene datos reales.
+Decidir qué hacer con el historial local antes de publicar; luego Fase 10: integración real con Power Automate (incluye probar «Abrir»/«Descargar» con enlaces reales de PDF, xlsx y docx).
