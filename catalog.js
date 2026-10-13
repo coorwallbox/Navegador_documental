@@ -1,9 +1,10 @@
 /* ================================================================
    CONSULTA DOCUMENTAL
-   catalog.js · Fase 6 · 2026 (niveles: Fase 7)
+   catalog.js · Fase 6 · 2026 (niveles: Fase 7; externos, clasificación
+   y revisión periódica: Fase 12)
    Catálogos de la estructura propuesta del listado maestro
-   (tipos y niveles de documento, bandas del mapa, procesos, empresas y
-   disposición final). Archivo independiente para poder ajustarlo
+   (tipos y niveles de documento, bandas del mapa, procesos, empresas,
+   disposición final, clasificación y periodos de revisión). Archivo independiente para poder ajustarlo
    o reemplazarlo sin tocar el resto de la aplicación.
    Se carga antes que utils.js y main.js.
 ================================================================ */
@@ -12,7 +13,7 @@ const Catalog = (() => {
 
   'use strict';
 
-  /** Los 10 tipos de documento (sigla → nombre). */
+  /** Los 10 tipos de documento internos y el tipo DE de los externos (sigla → nombre). */
   const TYPES = [
     { code: 'CA',  name: 'Caracterización' },
     { code: 'PO',  name: 'Política' },
@@ -24,18 +25,25 @@ const Catalog = (() => {
     { code: 'MT',  name: 'Matriz' },
     { code: 'RG',  name: 'Formato / registro' },
     { code: 'OT',  name: 'Otros documentos' },
+    // Origen externo: normas, leyes, manuales y boletines del fabricante (ISO 9001 §7.5.3.2)
+    { code: 'DE',  name: 'Documento externo' },
   ];
+
+  /** Tipo de los documentos de origen externo. */
+  const EXTERNAL_TYPE = 'DE';
 
   /**
    * Niveles de la pirámide documental (sección 3.2 de la propuesta:
    * Directrices, Forma de actuar, Controles operacionales, Evidencia),
    * con los nombres acordados para la consulta. Se deducen del tipo.
+   * Los externos van fuera de la pirámide, en el nivel «Externo» (Fase 12).
    */
   const LEVELS = [
     { code: '1', name: 'Estratégico', types: ['CA', 'PO', 'MA'] },
     { code: '2', name: 'Táctico',     types: ['PR', 'PG'] },
     { code: '3', name: 'Operativo',   types: ['INT', 'GU', 'MT'] },
     { code: '4', name: 'Evidencia',   types: ['RG', 'OT'] },
+    { code: 'E', name: 'Externo',     types: ['DE'] },
   ];
 
   /** Nombre de cada proceso por su sigla. */
@@ -79,6 +87,23 @@ const Catalog = (() => {
   /** Valores de la columna DISPOSICIÓN FINAL. */
   const DISPOSITIONS = ['CONSERVACIÓN TOTAL', 'ELIMINACIÓN', 'SELECCIÓN', 'DIGITALIZACIÓN'];
 
+  /**
+   * Valores de la columna CLASIFICACIÓN. Vacía = INTERNA. Un documento
+   * RESERVADA no muestra su archivo en la consulta (Ley 1581/2012, SAGRILAFT);
+   * la protección real son los permisos del archivo en SharePoint.
+   */
+  const CLASSIFICATION_INTERNAL = 'INTERNA';
+  const CLASSIFICATION_RESERVED = 'RESERVADA';
+  const CLASSIFICATIONS = [CLASSIFICATION_INTERNAL, CLASSIFICATION_RESERVED];
+
+  /**
+   * Años entre revisiones periódicas, por tipo. La próxima revisión es
+   * FECHA DE VIGENCIA + periodo. Los externos se verifican cada año
+   * (que la norma o el manual sigan vigentes) y OT también (sección 3.2).
+   */
+  const REVIEW_YEARS_DEFAULT = 3;
+  const REVIEW_YEARS_BY_TYPE = { DE: 1, OT: 1 };
+
   /** Nombre del tipo por su sigla (o la sigla si no está en el catálogo). */
   function typeName(code) {
     const found = TYPES.find((t) => t.code === code);
@@ -98,6 +123,16 @@ const Catalog = (() => {
       .replace(/\bCjdr\b/, 'CJDR');
   }
 
+  /** Años entre revisiones periódicas de un tipo de documento. */
+  function reviewYears(typeCode) {
+    return REVIEW_YEARS_BY_TYPE[typeCode] || REVIEW_YEARS_DEFAULT;
+  }
+
+  /** Indica si un tipo corresponde a un documento de origen externo. */
+  function isExternal(typeCode) {
+    return typeCode === EXTERNAL_TYPE;
+  }
+
   /** Nombre del proceso por su sigla (o cadena vacía si no está). */
   function processName(code) {
     return PROCESS_NAMES[code] || '';
@@ -110,8 +145,9 @@ const Catalog = (() => {
   }
 
   return {
-    TYPES, LEVELS, PROCESS_NAMES, BANDS, COMPANY_ALL, COMPANIES, DISPOSITIONS,
-    typeName, levelOf, companyLabel, processName, bandOf,
+    TYPES, EXTERNAL_TYPE, LEVELS, PROCESS_NAMES, BANDS, COMPANY_ALL, COMPANIES, DISPOSITIONS,
+    CLASSIFICATION_INTERNAL, CLASSIFICATION_RESERVED, CLASSIFICATIONS,
+    typeName, levelOf, companyLabel, processName, bandOf, reviewYears, isExternal,
   };
 
 })();

@@ -439,7 +439,7 @@ button { cursor: pointer; }
   gap: var(--espacio-md);
 }
 
-/* Filtros: 2 columnas en móvil, 3 en tablet, 6 en escritorio */
+/* Filtros: 2 columnas en móvil, 3 en tablet, 4 en escritorio y 7 en pantallas anchas */
 .filtros {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -800,6 +800,9 @@ button { cursor: pointer; }
 
 .panel-detalle__valor--vencida { color: var(--color-error-texto); font-weight: var(--peso-semi); }
 
+/* Nota secundaria dentro de un valor del panel (ej. periodo de la revisión periódica) */
+.panel-detalle__nota { color: var(--color-texto-suave); font-size: var(--tamaño-xs); font-weight: var(--peso-regular); }
+
 .badge-vencida {
   display: inline-block;
   margin-left: var(--espacio-xs);
@@ -937,7 +940,11 @@ body.sin-scroll { overflow: hidden; }
 ================================================================ */
 @media (min-width: 1024px) {
   .contenido-principal { padding: var(--espacio-xl); }
-  .filtros { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .filtros { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1280px) {
+  .filtros { grid-template-columns: repeat(7, minmax(0, 1fr)); }
 }
 
 

@@ -38,7 +38,7 @@ def load_config(path):
     if not path.exists():
         sys.exit(f'ERROR: no existe {path}. Copia config.local.example.json a config.local.json y complétalo.')
     config = json.loads(path.read_text(encoding='utf-8'))
-    config.setdefault('URL_UPLOAD', '')  # opcional hasta la Fase 13
+    config.setdefault('URL_UPLOAD', '')  # opcional hasta la Fase 15
     errors = []
     if not valid_url(config.get('URL_DOCUMENTS', ''), required=True):
         errors.append('URL_DOCUMENTS es obligatoria y debe ser una URL https válida')

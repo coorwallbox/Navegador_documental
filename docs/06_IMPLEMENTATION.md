@@ -115,20 +115,50 @@ Aprobado por el usuario el 2026-10-13. Las antiguas «Fase 10 — Integración r
   - **Ajuste posterior al cierre (2026-10-13), aprobado por el usuario — cobertura del listado:** quinto tipo de cargue «Retiro del documento» (solo documento elegido, motivo y solicitante; sin datos del documento, cargos ni archivo; `file: null`); avisos cuando el documento tiene variantes por empresa (la solicitud aplica solo a la empresa elegida) o anexos vigentes (SG decide si también se retiran); la vista previa del anexo indica «versión 1»; la etiqueta de las notas aclara que no se publican en el listado; datos demo de los anexos en versión 1; `03_TRD.md` con el retiro y las reglas de F3 completas. QA headless 17/17 (retiro: secciones, validaciones, avisos, envío demo y contrato con F2 simulado; nueva versión con variantes; anexo versión 1; contraste AA) y regresión de las Fases 5–11 OK.
   - Fallos encontrados y corregidos durante la validación: (1) el atributo `hidden` no ocultaba elementos cuyas clases definen `display` (secciones, resultado, botón «Cargar otro» visibles a la vez) — regla base `[hidden] { display: none !important; }`; (2) al cambiar de tipo o precargar un documento quedaban visibles errores de campos que ya tenían valor — se limpian al cambiar el contexto.
 
-## Fase 12 — Flujo F1 (lectura) y publicación interna
+## Cambio de alcance (2026-10-13) — ajustes de cumplimiento normativo
+
+Aprobado por el usuario el 2026-10-13, tras una evaluación crítica de la propuesta frente a ISO 9001 §7.5 y las normas colombianas (Ley 1581/2012, Ley 527/1999, Decreto 1072/2015). Se insertan dos fases antes de la integración con Power Automate, que está bloqueada por dependencias externas. Las antiguas Fases 12, 13 y 14 (nunca iniciadas) pasan a ser la 14, la 15 y la 16, sin cambio de contenido.
+
+Decisiones aprobadas (las cuatro opciones recomendadas):
+- **EN REVISIÓN se puede abrir y descargar**, con el aviso «cambio en trámite»: mientras se decide, la versión actual sigue siendo la única válida (ISO 9001 §7.5.3.1 a, disponibilidad). **Revierte** la decisión anterior del 2026-10-13 («EN REVISIÓN no»).
+- **Documentos externos en el mismo listado**: tipo nuevo `DE` (Documento externo), con código `SIGLA-DE-NNN`, fuera de la pirámide (nivel «Externo»), y columna nueva **EMISOR** (ISO 9001 §7.5.3.2).
+- **Cargue autenticado con Entra ID**: la página inicia sesión con la cuenta de la empresa (MSAL.js), el disparador de F2 se limita a los usuarios del inquilino y el solicitante sale del token. Reemplaza el riesgo residual aceptado en la decisión del mecanismo de cargue.
+- **Independencia de SG** (solo en la propuesta del mapa): SG se mantiene en Evaluación y mejora y las auditorías internas a SG las hacen auditores de otros procesos o externos (ISO 9001 §9.2.2 c).
+
+## Fase 12 — Ajustes de cumplimiento en la consulta
+
+- [x] **EN REVISIÓN se puede abrir o descargar**, con el aviso «Cambio en trámite hasta <fecha límite>: esta versión sigue vigente» en el panel y en el mensaje al abrir.
+- [x] Columna **CLASIFICACIÓN** (INTERNA / RESERVADA; vacía = INTERNA). Un documento reservado no muestra su archivo: el botón queda deshabilitado con el aviso «Documento reservado: solicítalo a Sistemas de Gestión». La protección real son los permisos del archivo en SharePoint, y F1 no debe enviar la UBICACIÓN de los reservados (`03_TRD.md`).
+- [x] **Documentos externos**: tipo `DE` en `catalog.js`, con nivel «Externo»; columna **EMISOR**; el panel muestra el origen (interno / externo) y el emisor.
+- [x] **Revisión periódica**: la próxima revisión se calcula como FECHA DE VIGENCIA + periodo según el tipo (3 años por defecto; 1 año para `DE` y `OT`), sin columna nueva. El panel la muestra y la marca «Vencida» si es un documento VIGENTE. Filtro nuevo «Revisión periódica» (vencida / al día) y parámetro de URL `?revision=`.
+- [x] Datos demo con los casos nuevos; `Utils.Json` lee 22 columnas; se actualizan `00_README`, el contrato de F1 en `03_TRD.md` y las plantillas del listado (`plantilla_listado.py`, `migrar_listado.py`).
+- [x] Validación (headless, 375, 768 y 1280 px): un documento EN REVISIÓN se abre con aviso; un reservado no se abre por ninguna vía (fila, panel, guarda defensiva); un `DE` muestra origen y emisor, y el nivel «Externo» acota el tipo; la próxima revisión se calcula bien y se marca vencida solo en VIGENTE; el filtro y `?revision=vencida` funcionan; una fila sin las 2 columnas nuevas toma INTERNA; contraste AA y foco; 0 errores de consola; regresión de las fases 5 a 11, incluida la página de cargue.
+  - Resultado (2026-10-13, QA headless servido por HTTP local): 52/52 — 22 documentos demo (19 + 3 nuevos); EN REVISIÓN: botón habilitado en fila y panel, aviso «Cambio en trámite hasta el 31 de agosto de 2026» al abrir y en el pie del panel, y se abre (simulado); reservado: botón deshabilitado en fila y panel con el motivo, clasificación «Reservada» visible y la guarda defensiva lo bloquea aunque se fuerce el botón; OBSOLETO y ELIMINADO siguen bloqueados; externo: origen, emisor y nivel «Externo» en el panel, sin emisor en los internos, el nivel Externo acota el tipo a `DE` (2 resultados); revisión periódica: vigencia 2022-01-12 → 12 de enero de 2025 «Vencida», externo cada año vencido y al día, OBSOLETO con fecha pasada sin marca; filtro «Vencida» = 2, «Al día» = 16, `?revision=Vencida` filtra y la URL se actualiza; una fila con solo los 20 encabezados anteriores toma INTERNA, encabezados nuevos sin tilde se reconocen, 22 columnas mapeadas, `addYears` con 29 de febrero y fecha vacía; contraste AA de la nota del periodo; el filtro nuevo tiene etiqueta y entra en el orden de Tab; 375/768/1024/1280 px sin desbordamiento, con 2/3/4/7 filtros por fila alineados; regresión: `?proceso=tal`, búsqueda, Esc y foco devuelto, xlsx → «Descargar», aviso sin UBICACIÓN, página de cargue con el stepper y el tipo `DE` en su catálogo; 0 errores de consola. Búsqueda de datos reales (997 códigos y 1002 nombres del listado contra los archivos versionados) → 0 coincidencias. Plantillas regeneradas: tabla `ListadoMaestro` `A6:V`, con listas de tipo (11) y clasificación (2); la migración sigue con 1049 filas.
+  - Decisiones de detalle: el filtro de revisión periódica se agregó como séptimo filtro (4 por fila de 1024 a 1279 px, 7 desde 1280 px); las 2 columnas nuevas van al final del listado para no correr las 20 anteriores; la página de cargue ya ofrece el tipo `DE`, pero el campo EMISOR del formulario llega en la Fase 13.
+
+## Fase 13 — Ajustes de cumplimiento en el cargue
+
+- [ ] **Autenticación con Entra ID**: inicio de sesión con MSAL.js antes de enviar; el token va en el encabezado `Authorization` de F2, cuyo disparador se limita a los usuarios del inquilino; nombre y correo del solicitante salen de la cuenta, no del formulario. Configuración (`CLIENT_ID`, `TENANT_ID`) fuera de Git, en `config-cargue.js`. Modo demo con un usuario simulado.
+- [ ] **Aprobación del contenido con evidencia**: correo de la persona que aprueba el contenido; F3 le pide la aprobación primero y luego a SG, y guarda las dos en la solicitud (Ley 527/1999).
+- [ ] **Aviso de privacidad** en el formulario (Ley 1581/2012).
+- [ ] F3 **avisa a los usuarios del proceso** al publicar (correo por proceso en `catalog.js` o en la configuración).
+- [ ] Campos nuevos en el cargue: CLASIFICACIÓN y, para `DE`, EMISOR. Se actualizan el contrato de F2 y F3 en `03_TRD.md` y `build_deploy.py`.
+- [ ] Validación: el envío lleva el token y el payload del contrato nuevo; sin sesión no se envía; los campos de identidad no se pueden editar; `DE` exige emisor y no pide retención; contraste AA y foco; 375, 768 y 1280 px; 0 errores de consola; regresión de las fases 5 a 12. MSAL se prueba con un caso real (registro de la app en Entra ID) en la Fase 15, porque depende de TI.
+
+## Fase 14 — Flujo F1 (lectura) y publicación interna
 
 - Guía paso a paso para construir F1 (disparador HTTP → Excel Online «Enumerar filas presentes en una tabla» con paginación → respuesta) y conexión de la consulta con el listado real.
 - Prueba de publicación interna (SharePoint de Calidad o plan B) con la configuración real: la consulta (`index.html`) y la página de cargue (`cargue.html`), que puede ir en una ubicación restringida a los líderes de proceso.
 - Validación: la llamada desde la página publicada pasa CORS (hallazgo de la Fase 10); llegan todas las filas del listado (paginación > 256), fechas y estados correctos; búsqueda, filtros y detalle con datos reales; «Abrir»/«Descargar» probados con un enlace real de PDF, xlsx y docx (el PDF se abre, los editables se descargan con `?download=1`). Recomendación para el listado: UBICACIÓN con el enlace directo al archivo (con extensión), no el enlace de compartir.
 - Depende de algo externo: licencia Premium, Excel formateado como tabla con los 20 encabezados, acceso al SharePoint de Calidad.
 
-## Fase 13 — Flujos F2 y F3 (cargue y aprobación)
+## Fase 15 — Flujos F2 y F3 (cargue y aprobación)
 
 - Guía paso a paso para construir F2 y F3: carpeta `_Pendientes`, lista de solicitudes en SharePoint, aprobación de SG, asignación de códigos (siguiente consecutivo libre sin reutilizar, `-ANnn` para anexos, mismo código para variantes y nuevas versiones), renombrado, publicación en la carpeta del proceso, paso a `_Obsoletos`, actualización del listado, estado EN REVISIÓN durante la solicitud de nueva versión y avisos al solicitante.
 - Validación: los 5 casos de punta a punta con archivos de prueba (código, versión, nombre de archivo, carpeta, versión anterior en `_Obsoletos`, fila del listado según las reglas de F3 en `03_TRD.md`; retiro → ELIMINADO), rechazo con comentarios, validaciones del servidor (extensión, tamaño, dominio) y dos solicitudes simultáneas sin consecutivo duplicado.
-- Depende de algo externo: lo mismo que la Fase 12, más permisos sobre las carpetas del repositorio.
+- Depende de algo externo: lo mismo que la Fase 14, más permisos sobre las carpetas del repositorio.
 
-## Fase 14 — Cierre
+## Fase 16 — Cierre
 
 - QA final y revisión de accesibilidad.
 - Ciclo de aprendizaje (lecciones aprendidas) — ver [[IDENTIDAD|IDENTIDAD.md]] §4.

@@ -1,11 +1,12 @@
 /* ================================================================
    CONSULTA DOCUMENTAL
-   demo-data.js · Fase 6 · 2026
+   demo-data.js · Fase 6 · 2026 (casos de cumplimiento: Fase 12)
    Datos de ejemplo (modo demo). TODO ES INVENTADO: códigos, nombres,
    cargos y fechas no corresponden a documentos reales.
-   Usa los 20 encabezados del listado maestro propuesto, tal como
+   Usa los 22 encabezados del listado maestro propuesto, tal como
    llegarían del Excel, para ejercitar Utils.Json.normalizeDocuments.
-   Cubre: los 10 tipos, los 4 estados, variantes por empresa (mismo
+   Cubre: los 10 tipos internos y el externo (DE), los 4 estados,
+   un documento RESERVADO, revisión periódica vencida y al día, variantes por empresa (mismo
    código, distinta EMPRESA), anexos (-AN01), un vigente sin UBICACIÓN
    y documentos EN REVISIÓN con fecha límite vencida y por vencer
    (respecto a octubre de 2026).
@@ -15,7 +16,7 @@ const DEMO_DOCUMENTS = (() => {
 
   'use strict';
 
-  /** Arma una fila con los 20 encabezados; `extra` sobrescribe los valores por defecto. */
+  /** Arma una fila con los 22 encabezados; `extra` sobrescribe los valores por defecto. */
   const row = (code, name, type, process, status, extra = {}) => ({
     'CÓDIGO': code,
     'NOMBRE DEL DOCUMENTO': name,
@@ -37,6 +38,8 @@ const DEMO_DOCUMENTS = (() => {
     'CARGO QUE APRUEBA': 'Gerente general',
     'CONTROL DE CAMBIOS': '',
     'OBSERVACIONES': '',
+    'CLASIFICACIÓN': 'INTERNA',
+    'EMISOR': '',
     ...extra,
   });
 
@@ -57,6 +60,21 @@ const DEMO_DOCUMENTS = (() => {
     row('SGRF-PO-064', 'Política de debida diligencia de contrapartes', 'PO', 'SGRF', 'VIGENTE', {
       'VERSIÓN': '3', 'FECHA DE VIGENCIA': '2026-01-20',
       'CARGO QUE ELABORA': 'Oficial de cumplimiento',
+    }),
+    // RESERVADA: se consulta su ficha, pero el archivo no se abre desde la consulta
+    row('SGRF-MT-065', 'Matriz de riesgos de contrapartes', 'MT', 'SGRF', 'VIGENTE', {
+      'VERSIÓN': '2', 'FECHA DE VIGENCIA': '2026-06-08', 'CLASIFICACIÓN': 'RESERVADA',
+      'UBICACIÓN': '#demo/SGRF/SGRF-MT-065 Matriz de riesgos de contrapartes.xlsx',
+      'CARGO QUE ELABORA': 'Oficial de cumplimiento',
+    }),
+    // Documentos externos (tipo DE): emisor, sin cargos; se verifican cada año
+    row('SG-DE-001', 'Norma de sistemas de gestión de la calidad', 'DE', 'SG', 'VIGENTE', {
+      'VERSIÓN': '2015', 'FECHA DE VIGENCIA': '2026-01-15', 'EMISOR': 'Organismo nacional de normalización',
+      'CARGO QUE ELABORA': '', 'CARGO QUE APRUEBA': '',
+    }),
+    row('TAL-DE-002', 'Boletín técnico de garantías del fabricante', 'DE', 'TAL', 'VIGENTE', {
+      'VERSIÓN': '3', 'FECHA DE VIGENCIA': '2025-03-10', 'EMISOR': 'Fabricante de la marca representada',
+      'CARGO QUE ELABORA': '', 'CARGO QUE APRUEBA': '',
     }),
     row('SG-MA-083', 'Manual del sistema integrado de gestión', 'MA', 'SG', 'VIGENTE', {
       'VERSIÓN': '5', 'FECHA DE VIGENCIA': '2026-03-09',
@@ -115,8 +133,9 @@ const DEMO_DOCUMENTS = (() => {
       ...RETENTION_RG, 'VERSIÓN': '1', 'FECHA DE VIGENCIA': '2026-02-23', 'EMPRESA': 'LOS COCHES CJDR',
       'CARGO QUE ELABORA': 'Coordinador de usados', 'CARGO QUE APRUEBA': 'Director comercial',
     }),
+    // Revisión periódica vencida: vigente desde hace más de 3 años
     row('GH-PG-066', 'Programa anual de formación del personal', 'PG', 'GH', 'VIGENTE', {
-      'VERSIÓN': '2', 'FECHA DE VIGENCIA': '2026-01-12',
+      'VERSIÓN': '2', 'FECHA DE VIGENCIA': '2022-01-12',
       'CARGO QUE ELABORA': 'Analista de gestión humana', 'CARGO QUE APRUEBA': 'Director de gestión humana',
     }),
     row('GH-RG-089', 'Formato de solicitud de permisos', 'RG', 'GH', 'OBSOLETO', {

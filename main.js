@@ -8,7 +8,7 @@
      1. DOMContentLoaded → App.init()
      2. Carga automática de documentos (modo demo o Power Automate)
      3. Los filtros se llenan desde catalog.js y se aplican los de la URL
-        (?proceso=TAL&banda=…&nivel=…&tipo=…&empresa=…&estado=…&q=…)
+        (?proceso=TAL&banda=…&nivel=…&tipo=…&empresa=…&estado=…&revision=…&q=…)
      4. Usuario busca por nombre o código y combina filtros; la tabla
         y la URL se actualizan en vivo
 ================================================================ */
@@ -75,6 +75,7 @@ const App = (() => {
     DOM.selectType           = document.getElementById('select-tipo');
     DOM.selectCompany        = document.getElementById('select-empresa');
     DOM.selectStatus         = document.getElementById('select-estado');
+    DOM.selectReview         = document.getElementById('select-revision');
     DOM.btnClearFilters      = document.getElementById('btn-limpiar-filtros');
     DOM.contadorResultados   = document.getElementById('contador-resultados');
     DOM.tbodyDocuments       = document.getElementById('tbody-documentos');
@@ -94,7 +95,7 @@ const App = (() => {
   /** Registra todos los event listeners de la aplicación. @private */
   function _bindEvents() {
     DOM.inputSearch.addEventListener('input', Utils.General.debounce(_applyFilters, 250));
-    [DOM.selectProcess, DOM.selectType, DOM.selectCompany, DOM.selectStatus]
+    [DOM.selectProcess, DOM.selectType, DOM.selectCompany, DOM.selectStatus, DOM.selectReview]
       .forEach((select) => select.addEventListener('change', _applyFilters));
     // Banda y nivel acotan las opciones de proceso y tipo
     DOM.selectBand.addEventListener('change', () => { _populateProcessOptions(); _applyFilters(); });
@@ -155,7 +156,8 @@ const App = (() => {
 
   /** Selects de filtro con su parámetro de URL (atributo data-param). @private */
   function _filterSelects() {
-    return [DOM.selectProcess, DOM.selectBand, DOM.selectLevel, DOM.selectType, DOM.selectCompany, DOM.selectStatus];
+    return [DOM.selectProcess, DOM.selectBand, DOM.selectLevel, DOM.selectType, DOM.selectCompany, DOM.selectStatus,
+      DOM.selectReview];
   }
 
   /** Crea un <option>. @private */
@@ -175,6 +177,12 @@ const App = (() => {
     select.value = [...select.options].some((o) => o.value === current) ? current : '';
   }
 
+  /** Opciones del filtro de revisión periódica (el valor va tal cual a la URL). */
+  const REVIEW_OPTIONS = [
+    { value: 'vencida', text: 'Vencida' },
+    { value: 'al-dia',  text: 'Al día' },
+  ];
+
   /** Llena todos los filtros desde catalog.js. @private */
   function _populateFilterOptions() {
     _fillSelect(DOM.selectBand, 'Todas',
@@ -186,6 +194,8 @@ const App = (() => {
       Catalog.COMPANIES.filter((c) => c !== Catalog.COMPANY_ALL).map((c) => _option(c, Catalog.companyLabel(c))));
     _fillSelect(DOM.selectStatus, 'Todos',
       Utils.Status.ALL.map((st) => _option(st, Utils.Status.label(st))));
+    // Revisión periódica (Fase 12): solo aplica a documentos vigentes
+    _fillSelect(DOM.selectReview, 'Todas', REVIEW_OPTIONS.map((o) => _option(o.value, o.text)));
     _populateProcessOptions();
     _populateTypeOptions();
   }
@@ -251,7 +261,7 @@ const App = (() => {
     // Banda y nivel primero: acotan las opciones de proceso y tipo
     setFrom(DOM.selectBand);   _populateProcessOptions();
     setFrom(DOM.selectLevel);  _populateTypeOptions();
-    [DOM.selectProcess, DOM.selectType, DOM.selectCompany, DOM.selectStatus].forEach(setFrom);
+    [DOM.selectProcess, DOM.selectType, DOM.selectCompany, DOM.selectStatus, DOM.selectReview].forEach(setFrom);
 
     const keyword = params.get('q');
     if (keyword) DOM.inputSearch.value = keyword;
@@ -296,6 +306,7 @@ const App = (() => {
       type:    DOM.selectType.value,
       company: DOM.selectCompany.value,
       status:  DOM.selectStatus.value,
+      review:  DOM.selectReview.value,
     };
 
     let results = state.allDocuments.filter((doc) =>
@@ -305,7 +316,11 @@ const App = (() => {
       (!f.type    || doc.type === f.type) &&
       // Empresa: la elegida o TODAS (aplica a las tres)
       (!f.company || doc.company === f.company || doc.company === Catalog.COMPANY_ALL) &&
-      (!f.status  || doc.status === f.status));
+      (!f.status  || doc.status === f.status) &&
+      // Revisión periódica: vencida, o al día (vigente sin vencer)
+      (!f.review  || (f.review === 'vencida'
+        ? doc.reviewOverdue
+        : doc.status === Utils.Status.VIGENTE && !doc.reviewOverdue)));
 
     results = Utils.Table.filterByKeyword(results, DOM.inputSearch.value);
 
@@ -352,9 +367,10 @@ const App = (() => {
 
     const escape = Utils.General.escapeHTML;
     const statusClass = Utils.Status.badgeClass(doc.status);
-    const openAttrs = Utils.Status.isDownloadable(doc.status)
+    const access = Utils.Access.check(doc);
+    const openAttrs = access.allowed
       ? ''
-      : `disabled aria-disabled="true" title="${escape(_notOpenableText())}"`;
+      : `disabled aria-disabled="true" title="${escape(access.text)}"`;
 
     row.innerHTML = `
       <td class="tabla__td tabla__td--codigo">${escape(doc.code)}</td>
@@ -382,9 +398,10 @@ const App = (() => {
     return row;
   }
 
-  /** Texto del motivo por el que un documento no se puede abrir. @private */
-  function _notOpenableText() {
-    return `Solo se pueden abrir o descargar documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}".`;
+  /** Aviso de un documento EN REVISIÓN: la versión actual sigue vigente mientras se decide. @private */
+  function _inReviewText(doc) {
+    const until = doc.reviewDeadline ? ` hasta el ${Utils.Format.dateLong(doc.reviewDeadline)}` : '';
+    return `Cambio en trámite${until}: esta versión sigue vigente hasta que se apruebe la nueva.`;
   }
 
   /** Texto del botón del archivo: "Abrir" (PDF o sin extensión) o "Descargar" (otros formatos). @private */
@@ -414,7 +431,8 @@ const App = (() => {
 
   /**
    * Abre (PDF, en pestaña nueva) o descarga (otros formatos) el archivo de UBICACIÓN.
-   * Solo VIGENTE; aviso si un vigente no tiene UBICACIÓN.
+   * Solo VIGENTE o EN REVISIÓN (con aviso) y no reservados (Utils.Access);
+   * aviso si no tiene UBICACIÓN.
    * (data-action="open" cubre ambas acciones.)
    * @private
    */
@@ -423,15 +441,21 @@ const App = (() => {
 
     // Guarda defensiva: el botón ya está deshabilitado para estos casos,
     // pero se valida también aquí por si se dispara la acción por otra vía.
-    if (!Utils.Status.isDownloadable(doc.status)) {
-      Utils.Toast.warning(`${_notOpenableText()} "${doc.documentName}" está en estado "${Utils.Status.label(doc.status)}".`);
+    const access = Utils.Access.check(doc);
+    if (!access.allowed) {
+      Utils.Toast.warning(access.reason === 'reserved'
+        ? `"${doc.documentName}" (${doc.code}): ${access.text}`
+        : `${access.text} "${doc.documentName}" está en estado "${Utils.Status.label(doc.status)}".`);
       return;
     }
 
     if (!doc.location) {
-      Utils.Toast.warning(`"${doc.documentName}" (${doc.code}) es vigente pero no tiene UBICACIÓN en el listado maestro. Avisa a Sistemas de Gestión.`);
+      Utils.Toast.warning(`"${doc.documentName}" (${doc.code}) no tiene UBICACIÓN en el listado maestro. Avisa a Sistemas de Gestión.`);
       return;
     }
+
+    // EN REVISIÓN: se abre, pero se avisa que hay un cambio en trámite
+    if (doc.status === Utils.Status.EN_REVISION) Utils.Toast.warning(_inReviewText(doc), 7000);
 
     const download = Utils.General.fileAction(doc.location) === 'download';
 
@@ -487,16 +511,17 @@ const App = (() => {
     DOM.detailCodigo.textContent = doc.code;
     _renderDetailBody(doc);
 
-    const canOpen = Utils.Status.isDownloadable(doc.status);
-    DOM.btnOpenPanel.disabled = !canOpen;
-    DOM.btnOpenPanel.setAttribute('aria-disabled', String(!canOpen));
-    DOM.btnOpenPanel.title = canOpen ? '' : _notOpenableText();
+    const access = Utils.Access.check(doc);
+    DOM.btnOpenPanel.disabled = !access.allowed;
+    DOM.btnOpenPanel.setAttribute('aria-disabled', String(!access.allowed));
+    DOM.btnOpenPanel.title = access.text;
     DOM.btnOpenPanel.textContent = _fileActionLabel(doc);
 
-    // Aviso visible en el pie: vigente sin UBICACIÓN o estado que no permite abrir
+    // Aviso visible en el pie: no se puede abrir (estado o reservado), sin UBICACIÓN o cambio en trámite
     let notice = '';
-    if (canOpen && !doc.location) notice = 'Vigente sin UBICACIÓN registrada.';
-    else if (!canOpen) notice = _notOpenableText();
+    if (!access.allowed) notice = access.text;
+    else if (!doc.location) notice = `${Utils.Status.label(doc.status)} sin UBICACIÓN registrada.`;
+    else if (doc.status === Utils.Status.EN_REVISION) notice = _inReviewText(doc);
     DOM.detailNotice.textContent = notice;
     DOM.detailNotice.hidden = !notice;
 
@@ -529,6 +554,8 @@ const App = (() => {
     const processName = Catalog.processName(doc.process);
     const band = Catalog.BANDS.find((b) => b.code === doc.band);
     const deadlinePast = Utils.Format.isPast(doc.reviewDeadline);
+    const external = Catalog.isExternal(doc.type);
+    const reviewYears = Catalog.reviewYears(doc.type);
     const { parent, annexes, variants } = _relatedDocuments(doc);
 
     const text = (value) => escape(value || dash);
@@ -537,6 +564,12 @@ const App = (() => {
     const linkList = (docs, labelOf, emptyText) => docs.length
       ? `<ul class="panel-detalle__lista">${docs.map((d) => `<li>${docLink(d, labelOf(d))}</li>`).join('')}</ul>`
       : escape(emptyText);
+
+    // Próxima revisión periódica (FECHA DE VIGENCIA + periodo del tipo); «Vencida» solo en vigentes
+    const nextReview = doc.nextReviewDate
+      ? `${escape(Utils.Format.dateLong(doc.nextReviewDate))} <span class="panel-detalle__nota">(cada ${reviewYears === 1 ? 'año' : `${reviewYears} años`})</span>${doc.reviewOverdue
+        ? ' <span class="badge-vencida">Vencida</span>' : ''}`
+      : dash;
 
     const deadline = doc.reviewDeadline
       ? `${escape(Utils.Format.dateLong(doc.reviewDeadline))}${deadlinePast
@@ -551,12 +584,17 @@ const App = (() => {
         ['process', 'Proceso',           text(processName ? `${doc.process} — ${processName}` : doc.process)],
         ['band',    'Banda del mapa',    text(band ? band.name : doc.band)],
         ['company', 'Empresa',           text(Catalog.companyLabel(doc.company))],
+        ['origin',  'Origen',            external ? 'Externo' : 'Interno'],
+        ...(external ? [['issuer', 'Emisor', text(doc.issuer)]] : []),
+        ['classification', 'Clasificación',
+          doc.classification === Catalog.CLASSIFICATION_RESERVED ? 'Reservada' : 'Interna'],
       ]],
       ['Vigencia', [
         ['status',         'Estado',                   `<span class="badge-estado ${Utils.Status.badgeClass(doc.status)}">${text(Utils.Status.label(doc.status))}</span>`],
         ['version',        'Versión',                  text(doc.version)],
         ['effectiveDate',  'Fecha de vigencia',        text(Utils.Format.dateLong(doc.effectiveDate))],
         ['reviewDeadline', 'Fecha límite de revisión', deadline],
+        ['nextReviewDate', 'Próxima revisión periódica', nextReview],
       ]],
       ['Responsables', [
         ['preparedBy', 'Cargo que elabora', text(doc.preparedBy)],
@@ -592,6 +630,7 @@ const App = (() => {
 
     const deadlineField = document.getElementById('detalle-reviewDeadline');
     if (deadlinePast) deadlineField.classList.add('panel-detalle__valor--vencida');
+    if (doc.reviewOverdue) document.getElementById('detalle-nextReviewDate').classList.add('panel-detalle__valor--vencida');
   }
 
   /**

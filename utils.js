@@ -1,14 +1,15 @@
 /* ================================================================
    CONSULTA DOCUMENTAL
-   utils.js · Fase 1 · 2026 (modelo de datos: Fase 6)
+   utils.js · Fase 1 · 2026 (modelo de datos: Fase 6; cumplimiento: Fase 12)
    Módulo de utilidades reutilizables.
    Expone el objeto global Utils con los siguientes submódulos:
      · Loader  — overlay de carga global
      · Toast   — sistema de notificaciones
      · Dialog  — panel lateral modal (detalle del documento)
-     · Status  — los 4 estados de documento y la regla de descarga
+     · Status  — los 4 estados de documento y los que permiten abrir
+     · Access  — regla única de acceso al archivo (estado + clasificación)
      · Format  — presentación de fechas y retención
-     · Json    — parseo y normalización de respuestas (20 columnas)
+     · Json    — parseo y normalización de respuestas (22 columnas)
      · Data    — carga del listado (demo o flujo F1), compartida por las dos páginas
      · Table   — utilidades sobre el array de documentos
      · General — funciones auxiliares de propósito general
@@ -223,8 +224,12 @@ const Utils = (() => {
     /** Los 4 estados de la propuesta (sección 3.6), en orden de uso. */
     ALL: ['VIGENTE', 'EN REVISIÓN', 'OBSOLETO', 'ELIMINADO'],
 
-    /** Estados que habilitan abrir/descargar. EN REVISIÓN no (decisión 2026-10-13). */
-    DOWNLOADABLE: ['VIGENTE'],
+    /**
+     * Estados que habilitan abrir/descargar. EN REVISIÓN sí (Fase 12, revierte
+     * la decisión anterior del 2026-10-13): mientras se decide el cambio, la
+     * versión actual sigue siendo la única válida (ISO 9001 §7.5.3.1 a).
+     */
+    DOWNLOADABLE: ['VIGENTE', 'EN REVISIÓN'],
 
     /** Texto visible de cada estado (el dato se guarda en mayúsculas). */
     LABELS: {
@@ -274,6 +279,35 @@ const Utils = (() => {
 
 
   /* ==============================================================
+     3b. ACCESO AL ARCHIVO
+     Única regla para la fila, el panel y la guarda defensiva:
+     estado que permite abrir (Status) y clasificación no reservada.
+  ============================================================== */
+  const Access = {
+
+    /** Texto para los documentos cuyo estado no permite abrir. */
+    STATUS_TEXT: 'Solo se pueden abrir o descargar documentos en estado "Vigente" o "En revisión".',
+
+    /** Texto para los documentos reservados. */
+    RESERVED_TEXT: 'Documento reservado: solicítalo a Sistemas de Gestión.',
+
+    /**
+     * Evalúa si se puede abrir el archivo de un documento.
+     * @param {Object} doc — documento normalizado
+     * @returns {{ allowed: boolean, reason: (''|'status'|'reserved'), text: string }}
+     */
+    check(doc) {
+      if (!Status.isDownloadable(doc.status)) return { allowed: false, reason: 'status', text: Access.STATUS_TEXT };
+      if (doc.classification === Catalog.CLASSIFICATION_RESERVED) {
+        return { allowed: false, reason: 'reserved', text: Access.RESERVED_TEXT };
+      }
+      return { allowed: true, reason: '', text: '' };
+    },
+
+  };
+
+
+  /* ==============================================================
      4. FORMATEO
      Presentación visual de datos (fechas, texto).
   ============================================================== */
@@ -301,6 +335,20 @@ const Utils = (() => {
     todayISO() {
       const d = new Date();
       return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    },
+
+    /**
+     * Suma años a una fecha ISO ("2025-02-28" + 1 → "2026-02-28"). El 29 de
+     * febrero pasa al 28 si el año destino no es bisiesto. "" si la fecha no es válida.
+     */
+    addYears(isoDate, years) {
+      const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate || '');
+      if (!match) return '';
+      const year = Number(match[1]) + years;
+      const month = Number(match[2]);
+      const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+      const day = Math.min(Number(match[3]), lastDay);
+      return `${year}-${match[2]}-${String(day).padStart(2, '0')}`;
     },
 
     /** Indica si una fecha ISO ya pasó (anterior a hoy). */
@@ -340,8 +388,8 @@ const Utils = (() => {
     },
 
     /**
-     * Columnas del listado maestro propuesto (20 columnas)
-     * → propiedades internas del documento.
+     * Columnas del listado maestro propuesto (22 columnas; CLASIFICACIÓN y
+     * EMISOR desde la Fase 12) → propiedades internas del documento.
      */
     COLUMNS: {
       'CÓDIGO':                              'code',
@@ -364,6 +412,8 @@ const Utils = (() => {
       'CARGO QUE APRUEBA':                   'approvedBy',
       'CONTROL DE CAMBIOS':                  'changeLog',
       'OBSERVACIONES':                       'notes',
+      'CLASIFICACIÓN':                       'classification',
+      'EMISOR':                              'issuer',
     },
 
     /** Columnas con fecha (se llevan a ISO "YYYY-MM-DD"). */
@@ -396,7 +446,8 @@ const Utils = (() => {
      * Los encabezados se comparan sin distinguir mayúsculas, tildes ni
      * espacios repetidos; también se aceptan los nombres de propiedad internos.
      * Reglas: ESTADO se lleva a su valor canónico; EMPRESA vacía = TODAS;
-     * BANDA DEL MAPA vacía se deduce del catálogo según la sigla.
+     * BANDA DEL MAPA vacía se deduce del catálogo según la sigla;
+     * CLASIFICACIÓN vacía = INTERNA; la próxima revisión periódica se calcula.
      *
      * @param {Array<Object>} raw — respuesta cruda
      * @returns {Array<Object>} documentos normalizados
@@ -428,6 +479,7 @@ const Utils = (() => {
           doc.parentCode = doc.parentCode.toUpperCase();
           doc.status     = Status.normalize(doc.status);
           doc.company    = doc.company.toUpperCase() || Catalog.COMPANY_ALL;
+          doc.classification = General.normalizeText(doc.classification) || Catalog.CLASSIFICATION_INTERNAL;
           if (!doc.band) {
             const band = Catalog.bandOf(doc.process);
             doc.band = band ? band.code : '';
@@ -435,6 +487,9 @@ const Utils = (() => {
           // Nivel de la pirámide documental: no es columna, se deduce del tipo
           const level = Catalog.levelOf(doc.type);
           doc.level = level ? level.code : '';
+          // Revisión periódica: no es columna, FECHA DE VIGENCIA + periodo del tipo (Fase 12)
+          doc.nextReviewDate = Format.addYears(doc.effectiveDate, Catalog.reviewYears(doc.type));
+          doc.reviewOverdue = doc.status === Status.VIGENTE && Format.isPast(doc.nextReviewDate);
           // Clave del documento: código + empresa (las variantes comparten código)
           doc.key = `${doc.code}|${doc.company}`;
           return doc;
@@ -649,6 +704,6 @@ const Utils = (() => {
   /* ==============================================================
      API PÚBLICA DEL MÓDULO
   ============================================================== */
-  return { Loader, Toast, Dialog, Status, Format, Json, Data, Table, General };
+  return { Loader, Toast, Dialog, Status, Access, Format, Json, Data, Table, General };
 
 })();
