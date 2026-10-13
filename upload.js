@@ -1,6 +1,6 @@
 /* ================================================================
    CONSULTA DOCUMENTAL
-   upload.js · Fase 11 · 2026
+   upload.js · Fase 11 · 2026 (cumplimiento: Fase 13)
    Página independiente de cargue de documentos (cargue.html; objeto
    global Upload). La consulta no la enlaza (ajuste 2026-10-13).
    Un líder de proceso envía una solicitud; Sistemas de Gestión la
@@ -8,8 +8,11 @@
    Casos: documento nuevo, nueva versión, anexo, variante por empresa y
    retiro (sin archivo; al aprobarse queda ELIMINADO).
    Sin URL_UPLOAD configurada, el envío se simula (modo demo).
-   Depende de: config.js, config-cargue.js, catalog.js, utils.js y
-   demo-data.js (lista de documentos en modo demo).
+   Fase 13: el solicitante inicia sesión con la cuenta de la empresa
+   (auth.js) y el token va a F2; aviso de privacidad; correo de quien
+   aprueba el contenido; clasificación y, en externos, emisor.
+   Depende de: config.js, config-cargue.js, catalog.js, utils.js,
+   demo-data.js (lista de documentos en modo demo) y auth.js.
 ================================================================ */
 
 const Upload = (() => {
@@ -52,6 +55,7 @@ const Upload = (() => {
     selected: null,         // documento existente elegido
     demoCounter: 0,
     sending: false,
+    user: null,             // solicitante con sesión ({ name, email }) o null
   };
 
 
@@ -72,6 +76,13 @@ const Upload = (() => {
       Utils.Toast.error('No se pudo cargar el listado: solo podrás solicitar documentos nuevos. Intenta más tarde para los demás casos.');
     } finally {
       Utils.Loader.hide();
+    }
+    // Sesión que ya exista en la pestaña (en modo demo se inicia con el botón)
+    try {
+      state.user = await Auth.init();
+    } catch (error) {
+      Utils.General.logError('Upload.start · Auth', error);
+      Utils.Toast.error('No se pudo preparar el inicio de sesión. Recarga la página; si persiste, avisa a Sistemas de Gestión.');
     }
     init({ getDocuments: () => documents });
   }
@@ -128,8 +139,18 @@ const Upload = (() => {
       preparedBy:     $('cargue-elabora'),
       approvedBy:     $('cargue-aprueba'),
       notes:          $('cargue-observaciones'),
-      requesterName:  $('cargue-solicitante'),
-      requesterEmail: $('cargue-correo'),
+      classification: $('cargue-clasificacion'),
+      issuerField:    $('cargue-campo-emisor'),
+      issuer:         $('cargue-emisor'),
+      approverField:  $('cargue-campo-aprobador'),
+      approver:       $('cargue-aprobador'),
+      sessionOut:     $('cargue-sesion-fuera'),
+      sessionIn:      $('cargue-sesion-dentro'),
+      btnSignIn:      $('cargue-sesion'),
+      btnSignOut:     $('cargue-cerrar-sesion'),
+      userName:       $('cargue-usuario-nombre'),
+      userEmail:      $('cargue-usuario-correo'),
+      privacy:        $('cargue-privacidad'),
       file:           $('cargue-archivo'),
       fileHelp:       $('cargue-archivo-ayuda'),
     });
@@ -165,6 +186,8 @@ const Upload = (() => {
   function _bindEvents() {
     DOM.btnClear.addEventListener('click', () => _reset(TYPES.NEW, true));
     DOM.btnAnother.addEventListener('click', () => _reset(TYPES.NEW, true));
+    DOM.btnSignIn.addEventListener('click', _handleSignIn);
+    DOM.btnSignOut.addEventListener('click', _handleSignOut);
     DOM.form.addEventListener('submit', _handleSubmit);
     // Stepper: se avanza solo si los campos del paso actual son válidos
     DOM.stepper.addEventListener('stepper-before-next', (evento) => {
@@ -204,8 +227,54 @@ const Upload = (() => {
     DOM.form.querySelector(`input[name="requestType"][value="${requestType}"]`).checked = true;
     _applyRequestType();
     DOM.stepper.reset();
+    _renderSession();  // la sesión se conserva entre solicitudes
     _syncStepActions();
     if (focus) DOM.form.querySelector('input[name="requestType"]:checked').focus();
+  }
+
+  /* ------------------------------------------------------------
+     Sesión del solicitante (auth.js)
+  ------------------------------------------------------------ */
+
+  /** Muestra el botón de inicio de sesión o el solicitante con sesión. @private */
+  function _renderSession() {
+    const user = state.user;
+    DOM.sessionOut.hidden = Boolean(user);
+    DOM.sessionIn.hidden = !user;
+    DOM.userName.textContent = user ? user.name : '';
+    DOM.userEmail.textContent = user ? user.email : '';
+  }
+
+  /** «Iniciar sesión»: ventana de Microsoft (o usuario simulado en modo demo). @private */
+  async function _handleSignIn() {
+    DOM.btnSignIn.disabled = true;
+    DOM.btnSignIn.textContent = 'Abriendo inicio de sesión…';
+    try {
+      state.user = await Auth.signIn();
+      _clearError(DOM.btnSignIn);
+      _renderSession();
+      DOM.privacy.focus();
+    } catch (error) {
+      Utils.General.logError('Upload._handleSignIn', error);
+      if (error && error.errorCode === 'user_cancelled') Utils.Toast.info('Se canceló el inicio de sesión.');
+      else Utils.Toast.error('No se pudo iniciar sesión. Si la ventana no abre, permite las ventanas emergentes de esta página.');
+    } finally {
+      DOM.btnSignIn.disabled = false;
+      DOM.btnSignIn.textContent = 'Iniciar sesión';
+    }
+  }
+
+  /** «Usar otra cuenta»: cierra la sesión y vuelve al botón. @private */
+  async function _handleSignOut() {
+    try {
+      await Auth.signOut();
+    } catch (error) {
+      Utils.General.logError('Upload._handleSignOut', error);
+    }
+    state.user = null;
+    _clearError(DOM.btnSignOut);
+    _renderSession();
+    DOM.btnSignIn.focus();
   }
 
   function _isLastStep() {
@@ -266,11 +335,12 @@ const Upload = (() => {
     DOM.stepFile.setAttribute('label', isRetire ? 'Confirmación' : 'Archivo');
     DOM.noteRetire.hidden = !isRetire;
 
-    // Retiro: sin datos del documento, cargos ni archivo (solo el documento elegido y el motivo)
+    // Retiro: sin datos del documento, cargos, aprobador ni archivo (solo el documento elegido y el motivo);
+    // los cargos dependen también del tipo (externo): _updateDerived
     DOM.sectionDocument.hidden = isRetire;
     DOM.sectionFile.hidden = isRetire;
-    DOM.rowRoles.hidden = isRetire;
-    [DOM.preparedBy, DOM.approvedBy, DOM.file].forEach((el) => { el.disabled = isRetire; });
+    DOM.approverField.hidden = isRetire;
+    [DOM.approver, DOM.classification, DOM.file].forEach((el) => { el.disabled = isRetire; });
 
     // Proceso y tipo solo se eligen en un documento nuevo; en los demás vienen del existente
     DOM.process.disabled = !isNew;
@@ -346,6 +416,8 @@ const Upload = (() => {
       DOM.process.value = '';
       DOM.type.value = '';
       DOM.name.value = '';
+      DOM.classification.value = Catalog.CLASSIFICATION_INTERNAL;
+      DOM.issuer.value = '';
       _fillCompanyOptions([]);
       _updateDerived();
       return;
@@ -368,6 +440,8 @@ const Upload = (() => {
     DOM.retCentral.value = doc.retentionCentralYears;
     DOM.disposition.value = doc.finalDisposition;
     DOM.basis.value = doc.retentionBasis;
+    DOM.classification.value = doc.classification || Catalog.CLASSIFICATION_INTERNAL;
+    DOM.issuer.value = doc.issuer || '';
 
     let note = '';
     if (type === TYPES.VARIANT) {
@@ -403,12 +477,20 @@ const Upload = (() => {
     _updateDerived();
   }
 
-  /** Recalcula la retención visible y la vista previa del código. @private */
+  /** Recalcula la retención, el emisor y los cargos visibles, y la vista previa del código. @private */
   function _updateDerived() {
     const type = _requestType();
-    const isRG = DOM.type.value === 'RG' && type !== TYPES.RETIRE;
+    const isRetire = type === TYPES.RETIRE;
+    const isRG = DOM.type.value === 'RG' && !isRetire;
     DOM.sectionRetention.hidden = !isRG;
     [DOM.retManagement, DOM.retCentral, DOM.disposition, DOM.basis].forEach((el) => { el.disabled = !isRG; });
+    // Externo (DE): pide el emisor; no tiene cargo que elabora ni que aprueba (los fija su emisor)
+    const isExternal = Catalog.isExternal(DOM.type.value) && !isRetire;
+    DOM.issuerField.hidden = !isExternal;
+    DOM.issuer.disabled = !isExternal;
+    const withRoles = !isRetire && !isExternal;
+    DOM.rowRoles.hidden = !withRoles;
+    [DOM.preparedBy, DOM.approvedBy].forEach((el) => { el.disabled = !withRoles; });
     DOM.codePreview.textContent = _codePreviewText(type);
   }
 
@@ -488,6 +570,7 @@ const Upload = (() => {
     required(DOM.process, 'Elige el proceso.');
     required(DOM.type, 'Elige el tipo de documento.');
     required(DOM.name, type === TYPES.ANNEX ? 'Escribe el nombre del anexo.' : 'Escribe el nombre del documento.');
+    required(DOM.issuer, 'Escribe quién emite el documento externo.');
     if (type === TYPES.VARIANT && state.selected && !DOM.company.value) {
       errors.push([DOM.company, 'No hay empresas disponibles para una variante de este documento.']);
     }
@@ -502,15 +585,19 @@ const Upload = (() => {
       : type === TYPES.RETIRE ? 'Explica el motivo del retiro.' : 'Describe el cambio.');
     required(DOM.preparedBy, 'Escribe el cargo que elabora.');
     required(DOM.approvedBy, 'Escribe el cargo que aprueba.');
-    required(DOM.requesterName, 'Escribe tu nombre.');
-
-    const email = DOM.requesterEmail.value.trim();
-    const domain = email.split('@')[1] || '';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      errors.push([DOM.requesterEmail, 'Escribe un correo válido.']);
-    } else if (CONFIG.EMAIL_DOMAINS.length && !CONFIG.EMAIL_DOMAINS.includes(domain.toLowerCase())) {
-      errors.push([DOM.requesterEmail, `Usa tu correo de la empresa (${CONFIG.EMAIL_DOMAINS.join(', ')}).`]);
+    if (!DOM.approver.disabled) {
+      const problem = _emailProblem(DOM.approver.value, 'el correo de quien aprueba el contenido');
+      if (problem) errors.push([DOM.approver, problem]);
     }
+
+    // Solicitante: sale de la cuenta de la empresa (no se escribe)
+    if (!state.user) {
+      errors.push([DOM.btnSignIn, 'Inicia sesión con tu cuenta de la empresa.']);
+    } else if (_emailProblem(state.user.email, 'tu correo')) {
+      // Con sesión el botón de inicio está oculto: el error va junto a «Usar otra cuenta»
+      errors.push([DOM.btnSignOut, `La cuenta ${state.user.email} no es de la empresa: usa otra cuenta.`]);
+    }
+    if (!DOM.privacy.checked) errors.push([DOM.privacy, 'Confirma que leíste el aviso de privacidad.']);
 
     const file = DOM.file.files[0];
     if (DOM.file.disabled) {
@@ -539,6 +626,17 @@ const Upload = (() => {
       Utils.Toast.warning(`Revisa ${fields} antes de ${scope ? 'continuar' : 'enviar'}.`);
     }
     return shown.length === 0;
+  }
+
+  /** Mensaje si un correo no es válido o no es de un dominio permitido ('' si está bien). @private */
+  function _emailProblem(value, what) {
+    const email = String(value || '').trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return `Escribe ${what} con un formato válido.`;
+    const domain = (email.split('@')[1] || '').toLowerCase();
+    if (CONFIG.EMAIL_DOMAINS.length && !CONFIG.EMAIL_DOMAINS.includes(domain)) {
+      return `Usa un correo de la empresa (${CONFIG.EMAIL_DOMAINS.join(', ')}).`;
+    }
+    return '';
   }
 
   function _showError(el, message) {
@@ -637,6 +735,9 @@ const Upload = (() => {
         process: DOM.process.value,
         band: band ? band.code : '',
         company: DOM.company.value,
+        // Retiro: conserva la clasificación del documento; externos: emisor (Fase 13)
+        classification: type === TYPES.RETIRE ? (doc.classification || Catalog.CLASSIFICATION_INTERNAL) : DOM.classification.value,
+        issuer: DOM.issuer.disabled ? '' : DOM.issuer.value.trim(),
         currentVersion: [TYPES.NEW_VERSION, TYPES.VARIANT, TYPES.RETIRE].includes(type) ? (doc.version || '') : '',
       },
       retention: {
@@ -647,13 +748,18 @@ const Upload = (() => {
       },
       change: {
         description: DOM.description.value.trim(),
-        preparedBy: type === TYPES.RETIRE ? '' : DOM.preparedBy.value.trim(),
-        approvedBy: type === TYPES.RETIRE ? '' : DOM.approvedBy.value.trim(),
+        // Retiro y externos: sin cargos
+        preparedBy: DOM.preparedBy.disabled ? '' : DOM.preparedBy.value.trim(),
+        approvedBy: DOM.approvedBy.disabled ? '' : DOM.approvedBy.value.trim(),
+        // Primera aprobación en F3 (evidencia del contenido); vacío en el retiro
+        contentApproverEmail: DOM.approver.disabled ? '' : DOM.approver.value.trim().toLowerCase(),
         notes: DOM.notes.value.trim(),
       },
+      // De la cuenta con sesión; F2 lo contrasta con la identidad del token
       requester: {
-        name: DOM.requesterName.value.trim(),
-        email: DOM.requesterEmail.value.trim().toLowerCase(),
+        name: state.user ? state.user.name : '',
+        email: state.user ? state.user.email : '',
+        privacyNoticeAccepted: DOM.privacy.checked,
       },
       // Retiro: sin archivo (null)
       file: file ? {
@@ -676,11 +782,12 @@ const Upload = (() => {
     });
   }
 
-  /** Envía la solicitud al flujo F2 y devuelve su respuesta { requestId, status }. @private */
+  /** Envía la solicitud al flujo F2 con el token de la cuenta y devuelve su respuesta { requestId, status }. @private */
   async function _send(payload) {
+    const token = await Auth.getToken();
     const response = await fetch(CONFIG.URL_UPLOAD, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
       body: JSON.stringify(payload),
       signal: AbortSignal.timeout(CONFIG.TIMEOUT_MS),
     });

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <!-- Página puente de MSAL v5 (Fase 13): recibe la respuesta de Microsoft Entra ID en la ventana
+       emergente y la devuelve a cargue.html. Debe servirse desde el mismo origen, sin encabezados COOP
+       y sin caché (la URL trae el código de autorización): ver docs/03_TRD.md. -->
+  <meta http-equiv="Cache-Control" content="no-store" />
+  <meta name="robots" content="noindex" />
+  <title>Iniciando sesión</title>
+</head>
+<body>
+  <p>Procesando el inicio de sesión…</p>
+  <script src="vendor/msal/msal-redirect-bridge-5.23.0.min.js"></script>
+  <script>
+    // Envía la respuesta a la ventana principal (BroadcastChannel) y cierra la emergente
+    msalRedirectBridge.broadcastResponseToMainFrame().catch(function (error) {
+      console.error('[Cargue · auth-redirect]', error);
+      document.querySelector('p').textContent = 'No se pudo completar el inicio de sesión. Cierra esta ventana e inténtalo de nuevo.';
+    });
+  </script>
+</body>
+</html>

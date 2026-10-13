@@ -5,13 +5,15 @@ Uso:
 
 Copia la aplicación (consulta index.html y página de cargue cargue.html, CSS, JS e img/)
 a la carpeta de salida y escribe allí config.js (URL de F1) y config-cargue.js (URL de F2 y
-parámetros del cargue, que solo carga cargue.html) con los valores de config.local.json
+parámetros del cargue, incluida la aplicación de Entra ID del inicio de sesión, que solo carga cargue.html)
+con los valores de config.local.json
 (excluido de Git). Los archivos de configuración del repositorio no se tocan: siguen vacíos. Falla si falta la configuración o si
 una URL no es válida (https, o http solo para pruebas en localhost).
 """
 import argparse
 import json
 import os
+import re
 import shutil
 import stat
 import sys
@@ -19,8 +21,11 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parent.parent
-APP_FILES = ['index.html', 'cargue.html', 'styles.css', 'catalog.js', 'utils.js', 'demo-data.js', 'upload.js', 'main.js']
-APP_DIRS = ['img', 'ds']
+APP_FILES = ['index.html', 'cargue.html', 'auth-redirect.html', 'styles.css', 'catalog.js', 'utils.js', 'demo-data.js',
+             'auth.js', 'upload.js', 'main.js']
+APP_DIRS = ['img', 'ds', 'vendor']
+GUID = re.compile(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', re.I)
+TENANT_DOMAIN = re.compile(r'^[a-z0-9-]+(\.[a-z0-9-]+)+$', re.I)
 LOCAL_HOSTS = {'localhost', '127.0.0.1'}
 
 
@@ -55,6 +60,16 @@ def load_config(path):
         errors.append('ALLOWED_EMAIL_DOMAINS debe ser una lista de dominios (ej. ["empresa.com"])')
     else:
         config['ALLOWED_EMAIL_DOMAINS'] = [d.lower() for d in domains]
+    # Inicio de sesión del cargue (Fase 13): obligatorio si hay URL de F2, porque F2 solo acepta usuarios del inquilino
+    for key in ('AUTH_CLIENT_ID', 'AUTH_TENANT_ID', 'AUTH_SCOPE'):
+        config[key] = str(config.get(key) or '').strip()
+    if config['URL_UPLOAD'] or config['AUTH_CLIENT_ID'] or config['AUTH_TENANT_ID']:
+        if not GUID.match(config['AUTH_CLIENT_ID']):
+            errors.append('AUTH_CLIENT_ID debe ser el id (GUID) de la aplicación registrada en Entra ID')
+        if not (GUID.match(config['AUTH_TENANT_ID']) or TENANT_DOMAIN.match(config['AUTH_TENANT_ID'])):
+            errors.append('AUTH_TENANT_ID debe ser el id (GUID) o el dominio del inquilino')
+    if config['AUTH_SCOPE'] and ('<' in config['AUTH_SCOPE'] or ' ' in config['AUTH_SCOPE']):
+        errors.append('AUTH_SCOPE debe estar vacío o ser un permiso (ej. https://service.flow.microsoft.com//.default)')
     if errors:
         sys.exit('ERROR en la configuración:\n  - ' + '\n  - '.join(errors))
     return config
@@ -80,7 +95,8 @@ def build(config, out):
     # config.js (consulta y cargue): solo F1. config-cargue.js (solo cargue.html): F2 y sus parámetros.
     _write_config(out / 'config.js', 'APP_CONFIG', config, ('URL_DOCUMENTS',))
     _write_config(out / 'config-cargue.js', 'UPLOAD_CONFIG', config,
-                  ('URL_UPLOAD', 'REVIEW_DAYS', 'MAX_UPLOAD_MB', 'ALLOWED_EMAIL_DOMAINS'))
+                  ('URL_UPLOAD', 'REVIEW_DAYS', 'MAX_UPLOAD_MB', 'ALLOWED_EMAIL_DOMAINS',
+                   'AUTH_CLIENT_ID', 'AUTH_TENANT_ID', 'AUTH_SCOPE'))
 
 
 def _write_config(path, name, config, keys):

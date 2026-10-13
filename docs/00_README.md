@@ -3,7 +3,7 @@ tecnologia: Web
 tipo: entregable
 proyecto: Consulta_Documental
 estado: pendiente
-estado_resumen: "Fase 12 completa — siguiente: Fase 13 (ajustes de cumplimiento en el cargue)"
+estado_resumen: "Fase 13 completa — Fase 14 (flujo F1 y publicación interna) depende de algo externo"
 stack: "HTML + CSS + JS vainilla"
 descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
 aliases: [Consulta_Documental]
@@ -72,6 +72,9 @@ Consulta_Documental/
 ├── config.local.example.json  # plantilla de la configuración real
 ├── cargue.html           # página independiente de cargue (no se enlaza desde la consulta)
 ├── upload.js             # lógica de la página de cargue (objeto Upload)
+├── auth.js               # inicio de sesión con Entra ID para el cargue (objeto Auth; MSAL.js)
+├── auth-redirect.html    # página puente de MSAL v5 (ventana emergente de inicio de sesión)
+├── vendor/msal/          # MSAL.js v5.23.0 y su puente, copiados del paquete de npm (licencia MIT)
 ├── config-cargue.js      # configuración del cargue (URL de F2): solo la carga cargue.html
 ├── catalog.js            # catálogos: tipos, bandas, procesos, empresas
 ├── demo-data.js          # datos de ejemplo inventados (modo demo)
@@ -81,13 +84,13 @@ Consulta_Documental/
 └── utils.js
 ```
 
-**Orden de carga obligatorio:** en `index.html`, `config.js` → `catalog.js` → `utils.js` → `demo-data.js` → `main.js`; en `cargue.html`, `config.js` → `config-cargue.js` → `catalog.js` → `utils.js` → `demo-data.js` → `ds/components/stepper/stepper.core.js` → `upload.js` (`Utils` usa `Catalog`; `App` y `Upload` usan `Utils` y `Catalog`; la carga del listado es `Utils.Data`, compartida).
+**Orden de carga obligatorio:** en `index.html`, `config.js` → `catalog.js` → `utils.js` → `demo-data.js` → `main.js`; en `cargue.html`, `config.js` → `config-cargue.js` → `catalog.js` → `utils.js` → `demo-data.js` → `ds/components/stepper/stepper.core.js` → `vendor/msal/msal-browser-5.23.0.min.js` → `auth.js` → `upload.js` (`Utils` usa `Catalog`; `App` y `Upload` usan `Utils` y `Catalog`; la carga del listado es `Utils.Data`, compartida).
 
 ## Despliegue
 
 El repositorio es público y la URL de un flujo con disparador HTTP permite usarlo a quien la tenga: **las URL nunca van al repositorio**.
 
-1. Copiar `config.local.example.json` a `config.local.json` (excluido de Git) y completar `URL_DOCUMENTS` (flujo F1) y, desde la Fase 15, `URL_UPLOAD` (flujo F2) y `ALLOWED_EMAIL_DOMAINS`.
+1. Copiar `config.local.example.json` a `config.local.json` (excluido de Git) y completar `URL_DOCUMENTS` (flujo F1) y, desde la Fase 15, `URL_UPLOAD` (flujo F2), `ALLOWED_EMAIL_DOMAINS` y la aplicación de Entra ID del inicio de sesión (`AUTH_CLIENT_ID`, `AUTH_TENANT_ID` y, si hace falta, `AUTH_SCOPE`; obligatorios si hay `URL_UPLOAD`).
 2. Ejecutar `python tools/build_deploy.py`: genera `dist/` (excluida de Git) con las dos páginas, `config.js` (URL de F1) y `config-cargue.js` (URL de F2 y parámetros del cargue; solo lo carga `cargue.html`, así la consulta no expone la URL de F2). Valida las URL (https) y los parámetros, y falla si falta la configuración.
 3. Publicar el contenido de `dist/` **solo en un destino interno** (la página de cargue puede ir en una ubicación aparte, restringida a los líderes de proceso): una página del sitio de SharePoint de Calidad (si el sitio permite servir la aplicación) o, como plan B, Azure Static Web Apps restringido a los usuarios de la empresa. Se prueba en la Fase 14.
 
@@ -101,7 +104,7 @@ Sin URL configurada (el `config.js` del repositorio), la consulta funciona en mo
 - Tabla de resultados: Código, Nombre del documento, Tipo, Proceso, Versión, Empresa, Estado y acciones («Ver más», «Abrir»).
 - «Ver más» → panel de detalle deslizante (overlay + aside) con 6 secciones: Identificación (tipo, nivel documental, proceso, banda, empresa, origen, emisor si es externo, clasificación), Vigencia (estado, versión, fecha de vigencia, fecha límite de revisión — marcada «Vencida» si pasó —, próxima revisión periódica — «Vencida» en vigentes), Responsables, Retención (tiempo, disposición final, fundamento), Documentos relacionados (documento principal, anexos y variantes por empresa, navegables dentro del panel) y Control de cambios / Observaciones.
 - Botón del archivo (fila y panel), según la extensión de UBICACIÓN: **PDF → «Abrir»** en una pestaña nueva; **cualquier otro formato → «Descargar»** (en SharePoint se agrega `?download=1`; aviso de copia no controlada); sin extensión → «Abrir». Solo VIGENTE y EN REVISIÓN (este con el aviso «Cambio en trámite…»), y nunca los RESERVADOS («solicítalo a Sistemas de Gestión»); aviso si no tiene UBICACIÓN. En modo demo la acción se simula.
-- **Cargue de documentos — página independiente `cargue.html`** (`upload.js`; la consulta no la muestra ni la enlaza): formulario en 5 pasos con el stepper de Design_System_Core (tipo de cargue, documento, cambio y responsables, solicitante, archivo; cada paso se valida antes de avanzar y «Enviar solicitud» aparece en el último); un líder de proceso envía una solicitud de documento nuevo, nueva versión, anexo, variante por empresa o retiro (sin archivo; al aprobarse queda ELIMINADO); elige el documento existente con un buscador por código o nombre (sin OBSOLETO ni ELIMINADO) y sus datos se precargan; vista previa del código (provisional: lo confirma SG al aprobar); retención obligatoria para formatos RG; validaciones (obligatorios, años 0–100, correo y dominio, archivo pdf/docx/xlsx/pptx de hasta 20 MB). La solicitud va al flujo F2 y SG la aprueba en F3 antes de publicar (contratos en `03_TRD.md`). En modo demo el envío se simula con un número de solicitud.
+- **Cargue de documentos — página independiente `cargue.html`** (`upload.js`; la consulta no la muestra ni la enlaza): formulario en 5 pasos con el stepper de Design_System_Core (tipo de cargue, documento, cambio y responsables, solicitante, archivo; cada paso se valida antes de avanzar y «Enviar solicitud» aparece en el último); el líder de proceso **inicia sesión con su cuenta de la empresa** (Entra ID; su nombre y correo salen de la cuenta, el token va a F2, y en modo demo se simula un usuario de prueba), **acepta el aviso de privacidad**, indica el **correo de quien aprueba el contenido** (primera aprobación de F3), la **clasificación** y, en documentos externos (`DE`), el **emisor**; envía una solicitud de documento nuevo, nueva versión, anexo, variante por empresa o retiro (sin archivo; al aprobarse queda ELIMINADO); elige el documento existente con un buscador por código o nombre (sin OBSOLETO ni ELIMINADO) y sus datos se precargan; vista previa del código (provisional: lo confirma SG al aprobar); retención obligatoria para formatos RG; validaciones (obligatorios, años 0–100, correos y dominio, cuenta de la empresa, archivo pdf/docx/xlsx/pptx de hasta 20 MB). La solicitud va al flujo F2; en F3 la aprueban quien aprueba el contenido y luego SG antes de publicar, y se avisa a los usuarios del proceso (contratos en `03_TRD.md`). En modo demo el envío se simula con un número de solicitud.
 - Modo demo (datos de ejemplo embebidos) para desarrollar sin depender de Power Automate.
 - Acceso libre, sin selección de actor/rol.
 

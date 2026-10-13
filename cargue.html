@@ -159,6 +159,20 @@
               <select id="cargue-empresa" class="campo__input campo__input--select"></select>
               <p id="cargue-empresa-error" class="campo__error" hidden></p>
             </div>
+            <div class="campo">
+              <label for="cargue-clasificacion" class="campo__label">Clasificación</label>
+              <select id="cargue-clasificacion" class="campo__input campo__input--select" aria-describedby="cargue-clasificacion-ayuda">
+                <option value="INTERNA">Interna — cualquier colaborador puede abrirlo</option>
+                <option value="RESERVADA">Reservada — datos personales, Sagrilaf u otra información restringida</option>
+              </select>
+              <p id="cargue-clasificacion-ayuda" class="campo__ayuda">Un documento reservado se ve en la consulta, pero su archivo se pide a Sistemas de Gestión.</p>
+              <p id="cargue-clasificacion-error" class="campo__error" hidden></p>
+            </div>
+            <div id="cargue-campo-emisor" class="campo" hidden>
+              <label for="cargue-emisor" class="campo__label">Emisor del documento externo</label>
+              <input id="cargue-emisor" type="text" class="campo__input" maxlength="160" placeholder="Ej. organismo de normalización, ministerio o fabricante" />
+              <p id="cargue-emisor-error" class="campo__error" hidden></p>
+            </div>
             <p id="cargue-codigo-previo" class="form-cargue__nota" aria-live="polite"></p>
           </fieldset>
 
@@ -212,6 +226,12 @@
               <p id="cargue-aprueba-error" class="campo__error" hidden></p>
             </div>
             </div>
+            <div id="cargue-campo-aprobador" class="campo">
+              <label for="cargue-aprobador" class="campo__label">Correo de quien aprueba el contenido</label>
+              <input id="cargue-aprobador" type="email" class="campo__input" autocomplete="off" maxlength="160" aria-describedby="cargue-aprobador-ayuda" />
+              <p id="cargue-aprobador-ayuda" class="campo__ayuda">Recibe primero la solicitud y la aprueba en Power Automate; después decide Sistemas de Gestión. Su aprobación queda como evidencia.</p>
+              <p id="cargue-aprobador-error" class="campo__error" hidden></p>
+            </div>
             <div class="campo">
               <label for="cargue-observaciones" class="campo__label">Notas para Sistemas de Gestión (opcional; no se publican en el listado)</label>
               <textarea id="cargue-observaciones" class="campo__input campo__input--area" rows="2"></textarea>
@@ -226,17 +246,28 @@
           <ds-step label="Solicitante">
           <fieldset class="panel-detalle__seccion form-cargue__grupo">
             <legend class="sr-only">Solicitante</legend>
-            <div class="form-cargue__fila">
-            <div class="campo">
-              <label for="cargue-solicitante" class="campo__label">Nombre</label>
-              <input id="cargue-solicitante" type="text" class="campo__input" autocomplete="name" maxlength="120" />
-              <p id="cargue-solicitante-error" class="campo__error" hidden></p>
+            <!-- El solicitante sale de la cuenta de la empresa (auth.js), no se escribe -->
+            <div id="cargue-sesion-fuera" class="cargue-sesion">
+              <p class="form-cargue__nota">Inicia sesión con tu cuenta de la empresa: así queda registrado quién hace la solicitud y te llega la respuesta.</p>
+              <button id="cargue-sesion" class="btn btn--primario" type="button">Iniciar sesión</button>
+              <p id="cargue-sesion-error" class="campo__error" hidden></p>
             </div>
-            <div class="campo">
-              <label for="cargue-correo" class="campo__label">Correo</label>
-              <input id="cargue-correo" type="email" class="campo__input" autocomplete="email" maxlength="160" />
-              <p id="cargue-correo-error" class="campo__error" hidden></p>
+            <div id="cargue-sesion-dentro" class="cargue-resumen" hidden>
+              <p class="cargue-resumen__titulo">Solicitante: <span id="cargue-usuario-nombre"></span></p>
+              <p class="cargue-resumen__meta"><span id="cargue-usuario-correo"></span> ·
+                <button id="cargue-cerrar-sesion" class="panel-detalle__enlace" type="button">Usar otra cuenta</button></p>
+              <p id="cargue-cerrar-sesion-error" class="campo__error" hidden></p>
             </div>
+            <div class="cargue-privacidad">
+              <p id="cargue-privacidad-texto" class="form-cargue__nota"><strong>Aviso de privacidad.</strong> Tu nombre y tu correo de la empresa se
+                usan solo para tramitar esta solicitud, avisarte su resultado y dejar evidencia de quién la hizo, según la política de
+                tratamiento de datos personales de la empresa (Ley 1581 de 2012). Puedes conocer, actualizar o corregir tus datos ante el
+                responsable de su tratamiento.</p>
+              <label class="cargue-privacidad__check">
+                <input id="cargue-privacidad" type="checkbox" aria-describedby="cargue-privacidad-texto" />
+                <span>Leí el aviso de privacidad</span>
+              </label>
+              <p id="cargue-privacidad-error" class="campo__error" hidden></p>
             </div>
           </fieldset>
             <div class="form-cargue__paso-acciones">
@@ -285,13 +316,15 @@
     </div>
   </footer>
 
-  <!-- Orden obligatorio: configuración → configuración del cargue → catálogos → utilidades → datos demo → stepper → cargue -->
+  <!-- Orden obligatorio: configuración → configuración del cargue → catálogos → utilidades → datos demo → stepper → MSAL → sesión → cargue -->
   <script src="config.js"></script>
   <script src="config-cargue.js"></script>
   <script src="catalog.js"></script>
   <script src="utils.js"></script>
   <script src="demo-data.js"></script>
   <script src="ds/components/stepper/stepper.core.js"></script>
+  <script src="vendor/msal/msal-browser-5.23.0.min.js"></script>
+  <script src="auth.js"></script>
   <script src="upload.js"></script>
 
 </body>

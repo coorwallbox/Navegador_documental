@@ -1053,6 +1053,20 @@ body.sin-scroll { overflow: hidden; }
 .cargue-resumen__titulo { font-size: var(--tamaño-sm); font-weight: var(--peso-semi); color: var(--color-secundario); }
 .cargue-resumen__meta { font-size: var(--tamaño-xs); color: var(--color-texto-suave); line-height: 1.9; }
 
+/* Sesión del solicitante y aviso de privacidad (Fase 13) */
+.cargue-sesion { display: flex; flex-direction: column; align-items: flex-start; gap: var(--espacio-sm); }
+.cargue-privacidad { display: flex; flex-direction: column; gap: var(--espacio-sm); margin-top: var(--espacio-md); }
+.cargue-privacidad__check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-sm);
+  font-size: var(--tamaño-sm);
+  color: var(--color-secundario);
+  cursor: pointer;
+}
+.cargue-privacidad__check input { width: 18px; height: 18px; accent-color: var(--color-primario); }
+.cargue-privacidad__check input[aria-invalid="true"] { outline: 2px solid var(--color-error-texto); outline-offset: 2px; }
+
 .cargue-resultado__resumen { display: flex; flex-direction: column; gap: var(--espacio-md); margin-top: var(--espacio-md); }
 
 @media (min-width: 600px) {
