@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Consulta Documental — Búsqueda de documentos por palabra clave" />
+  <meta name="description" content="Consulta Documental — Búsqueda de documentos por nombre, código y filtros del listado maestro" />
   <title>Consulta Documental</title>
   <link rel="icon" type="image/svg+xml" href="img/favicon.svg" />
   <link rel="stylesheet" href="styles.css" />
@@ -72,41 +72,61 @@
       >
         <div class="barra-busqueda">
 
-          <div class="campo campo--busqueda">
-            <label for="input-busqueda" class="campo__label">Buscar por nombre del documento</label>
-            <div class="campo__input-wrapper">
-              <svg class="campo__icono-busqueda" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
-              <input
-                id="input-busqueda"
-                type="search"
-                class="campo__input campo__input--busqueda"
-                placeholder="Ej. Procedimiento de compras..."
-                autocomplete="off"
-                aria-controls="tbody-documentos"
-              />
+          <div class="barra-busqueda__fila">
+            <div class="campo campo--busqueda">
+              <label for="input-busqueda" class="campo__label">Buscar por nombre o código</label>
+              <div class="campo__input-wrapper">
+                <svg class="campo__icono-busqueda" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                <input
+                  id="input-busqueda"
+                  type="search"
+                  class="campo__input campo__input--busqueda"
+                  placeholder="Ej. Procedimiento de compras o TAL-RG..."
+                  autocomplete="off"
+                  aria-controls="tbody-documentos"
+                />
+              </div>
+            </div>
+
+            <div class="barra-busqueda__acciones">
+              <div class="barra-busqueda__contador" aria-live="polite" aria-atomic="true">
+                <span class="barra-busqueda__contador-etiqueta">Resultados:</span>
+                <span id="contador-resultados" class="barra-busqueda__contador-valor" aria-label="Total de documentos encontrados">0</span>
+              </div>
+              <button id="btn-limpiar-filtros" class="btn btn--secundario btn--sm" type="button">
+                Limpiar filtros
+              </button>
             </div>
           </div>
 
-          <div class="campo campo--proceso">
-            <label for="select-proceso" class="campo__label">Proceso</label>
-            <div class="campo__select-wrapper">
-              <select
-                id="select-proceso"
-                class="campo__input campo__input--select"
-              >
-                <option value="">Todos los procesos</option>
-              </select>
+          <!-- Filtros: las opciones se llenan desde catalog.js (main.js) -->
+          <div class="filtros" role="group" aria-label="Filtros de documentos">
+            <div class="campo">
+              <label for="select-proceso" class="campo__label">Proceso</label>
+              <select id="select-proceso" class="campo__input campo__input--select" data-param="proceso"></select>
             </div>
-          </div>
-
-          <div class="campo campo--resultados">
-            <span class="campo__label campo__label--espaciador" aria-hidden="true">&nbsp;</span>
-            <div class="barra-busqueda__contador" aria-live="polite" aria-atomic="true">
-              <span class="barra-busqueda__contador-etiqueta">Resultados:</span>
-              <span id="contador-resultados" class="barra-busqueda__contador-valor" aria-label="Total de documentos encontrados">0</span>
+            <div class="campo">
+              <label for="select-banda" class="campo__label">Banda del mapa</label>
+              <select id="select-banda" class="campo__input campo__input--select" data-param="banda"></select>
+            </div>
+            <div class="campo">
+              <label for="select-nivel" class="campo__label">Nivel</label>
+              <select id="select-nivel" class="campo__input campo__input--select" data-param="nivel"></select>
+            </div>
+            <div class="campo">
+              <label for="select-tipo" class="campo__label">Tipo</label>
+              <select id="select-tipo" class="campo__input campo__input--select" data-param="tipo"></select>
+            </div>
+            <div class="campo">
+              <label for="select-empresa" class="campo__label">Empresa</label>
+              <select id="select-empresa" class="campo__input campo__input--select" data-param="empresa"></select>
+            </div>
+            <div class="campo">
+              <label for="select-estado" class="campo__label">Estado</label>
+              <select id="select-estado" class="campo__input campo__input--select" data-param="estado"></select>
             </div>
           </div>
 
@@ -219,6 +239,10 @@
       <div class="panel-detalle__campo">
         <span class="panel-detalle__etiqueta">Tipo</span>
         <span id="detalle-type" class="panel-detalle__valor"></span>
+      </div>
+      <div class="panel-detalle__campo">
+        <span class="panel-detalle__etiqueta">Nivel</span>
+        <span id="detalle-level" class="panel-detalle__valor"></span>
       </div>
       <div class="panel-detalle__campo">
         <span class="panel-detalle__etiqueta">Proceso</span>

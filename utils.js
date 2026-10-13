@@ -328,6 +328,9 @@ const Utils = (() => {
             const band = Catalog.bandOf(doc.process);
             doc.band = band ? band.code : '';
           }
+          // Nivel de la pirámide documental: no es columna, se deduce del tipo
+          const level = Catalog.levelOf(doc.type);
+          doc.level = level ? level.code : '';
           // Clave del documento: código + empresa (las variantes comparten código)
           doc.key = `${doc.code}|${doc.company}`;
           return doc;
@@ -345,7 +348,7 @@ const Utils = (() => {
   const Table = {
 
     /**
-     * Filtra documentos cuyo nombre contenga el texto buscado.
+     * Filtra documentos cuyo nombre o código contenga el texto buscado.
      * Búsqueda insensible a mayúsculas y tildes.
      * @param {Array<Object>} documents
      * @param {string} keyword
@@ -358,7 +361,8 @@ const Utils = (() => {
         String(str).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
 
       const term = normalize(keyword.trim());
-      return documents.filter((doc) => normalize(doc.documentName).includes(term));
+      return documents.filter((doc) =>
+        normalize(doc.documentName).includes(term) || normalize(doc.code).includes(term));
     },
 
     /**
@@ -392,6 +396,11 @@ const Utils = (() => {
     /** Texto en mayúsculas, sin tildes y sin espacios en los extremos (para comparar). */
     normalizeText(text) {
       return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+    },
+
+    /** Forma corta para URL: minúsculas, sin tildes, espacios → guion ("EN REVISIÓN" → "en-revision"). */
+    slug(text) {
+      return General.normalizeText(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
     },
 
     /** Escapa caracteres especiales de HTML para prevenir XSS en innerHTML. */

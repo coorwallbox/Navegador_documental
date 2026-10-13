@@ -3,7 +3,7 @@ tecnologia: Web
 tipo: entregable
 proyecto: Consulta_Documental
 estado: pendiente
-estado_resumen: "Fase 7 pendiente (filtros, búsqueda y enlace por URL)"
+estado_resumen: "Fase 8 pendiente (tabla y panel de detalle)"
 stack: "HTML + CSS + JS vainilla"
 descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
 aliases: [Consulta_Documental]
@@ -73,8 +73,9 @@ Consulta_Documental/
 
 ## Funcionalidades principales (previstas)
 
-- Filtro opcional por Proceso (`process`, dropdown) — complementa la búsqueda por palabra clave, no es requisito para buscar.
-- Búsqueda por palabra clave sobre `documentName` (Nombre del documento).
+- Búsqueda por nombre o código del documento (sin distinguir mayúsculas ni tildes).
+- Filtros opcionales y combinables: proceso («TAL — Taller», agrupado por banda), banda del mapa, nivel (Estratégico, Táctico, Operativo, Evidencia — se deduce del tipo), tipo, empresa (incluye siempre los documentos de TODAS) y estado. La banda acota el proceso y el nivel acota el tipo. Botón «Limpiar filtros».
+- Enlace directo con filtros en la URL — `?proceso=TAL` (también `banda`, `nivel`, `tipo`, `empresa`, `estado`, `q`), sin distinguir mayúsculas ni tildes; un valor inexistente se ignora con aviso. La URL se actualiza al filtrar, para compartir la vista.
 - Tabla de resultados resumen: Código, Nombre del documento, Tipo, Proceso, Estado, Descargar.
 - Botón "Ver más" por fila → panel de detalle deslizante (overlay + aside) con el resto de columnas: Versión, Fecha de emisión, Fecha de aprobación, Responsable, Usuarios/áreas aplicables, Tiempo de retención.
 - Botón "Descargar" por fila → abre/descarga el archivo desde `location` (enlace/ruta SharePoint).
@@ -105,7 +106,7 @@ EN REVISIÓN reemplaza a «Por revisar» y «Desactualizado» y lleva FECHA LÍM
 
 ## Catálogos
 
-`catalog.js` (objeto global `Catalog`) contiene los 10 tipos de documento, las bandas del mapa con sus grupos y siglas, los nombres de los procesos, las empresas y la disposición final. Está aparte para poder ajustarlo (la ubicación de SG y otros procesos está pendiente de aprobación) sin tocar el resto.
+`catalog.js` (objeto global `Catalog`) contiene los 10 tipos de documento, los 4 niveles de la pirámide documental, las bandas del mapa con sus grupos y siglas, los nombres de los procesos, las empresas y la disposición final. Está aparte para poder ajustarlo (la ubicación de SG y otros procesos está pendiente de aprobación) sin tocar el resto.
 
 ## Diferencias frente a la referencia
 

@@ -1,8 +1,8 @@
 /* ================================================================
    CONSULTA DOCUMENTAL
-   catalog.js · Fase 6 · 2026
+   catalog.js · Fase 6 · 2026 (niveles: Fase 7)
    Catálogos de la estructura propuesta del listado maestro
-   (tipos de documento, bandas del mapa, procesos, empresas y
+   (tipos y niveles de documento, bandas del mapa, procesos, empresas y
    disposición final). Archivo independiente para poder ajustarlo
    o reemplazarlo sin tocar el resto de la aplicación.
    Se carga antes que utils.js y main.js.
@@ -24,6 +24,18 @@ const Catalog = (() => {
     { code: 'MT',  name: 'Matriz' },
     { code: 'RG',  name: 'Formato / registro' },
     { code: 'OT',  name: 'Otros documentos' },
+  ];
+
+  /**
+   * Niveles de la pirámide documental (sección 3.2 de la propuesta:
+   * Directrices, Forma de actuar, Controles operacionales, Evidencia),
+   * con los nombres acordados para la consulta. Se deducen del tipo.
+   */
+  const LEVELS = [
+    { code: '1', name: 'Estratégico', types: ['CA', 'PO', 'MA'] },
+    { code: '2', name: 'Táctico',     types: ['PR', 'PG'] },
+    { code: '3', name: 'Operativo',   types: ['INT', 'GU', 'MT'] },
+    { code: '4', name: 'Evidencia',   types: ['RG', 'OT'] },
   ];
 
   /** Nombre de cada proceso por su sigla. */
@@ -73,6 +85,19 @@ const Catalog = (() => {
     return found ? found.name : code;
   }
 
+  /** Nivel (objeto de LEVELS) al que pertenece un tipo, o null. */
+  function levelOf(typeCode) {
+    return LEVELS.find((level) => level.types.includes(typeCode)) || null;
+  }
+
+  /** Texto visible de una empresa ("LOS COCHES CJDR" → "Los Coches CJDR"). */
+  function companyLabel(company) {
+    if (company === COMPANY_ALL) return 'Todas';
+    return String(company).toLowerCase()
+      .replace(/(^|\s)\S/g, (c) => c.toUpperCase())
+      .replace(/\bCjdr\b/, 'CJDR');
+  }
+
   /** Nombre del proceso por su sigla (o cadena vacía si no está). */
   function processName(code) {
     return PROCESS_NAMES[code] || '';
@@ -84,6 +109,9 @@ const Catalog = (() => {
       band.groups.some((group) => group.processes.includes(processCode))) || null;
   }
 
-  return { TYPES, PROCESS_NAMES, BANDS, COMPANY_ALL, COMPANIES, DISPOSITIONS, typeName, processName, bandOf };
+  return {
+    TYPES, LEVELS, PROCESS_NAMES, BANDS, COMPANY_ALL, COMPANIES, DISPOSITIONS,
+    typeName, levelOf, companyLabel, processName, bandOf,
+  };
 
 })();

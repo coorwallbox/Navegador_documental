@@ -4,16 +4,13 @@
    Módulo principal de la aplicación.
    Depende de: catalog.js, utils.js y demo-data.js (deben cargarse antes en el HTML)
 
-   Flujo Fase 1:
+   Flujo:
      1. DOMContentLoaded → App.init()
      2. Carga automática de documentos (modo demo o Power Automate)
-     3. Usuario busca por nombre del documento y/o filtra por proceso
-        (filtro opcional, se combina con la búsqueda)
-     4. Tabla se actualiza en vivo con los resultados
-
-   Nota: los botones "Ver detalle" y "Descargar" de cada fila quedan
-   como estructura visual — su comportamiento se implementa en las
-   Fases 2 y 3 (ver docs/06_IMPLEMENTATION.md).
+     3. Los filtros se llenan desde catalog.js y se aplican los de la URL
+        (?proceso=TAL&banda=…&nivel=…&tipo=…&empresa=…&estado=…&q=…)
+     4. Usuario busca por nombre o código y combina filtros; la tabla
+        y la URL se actualizan en vivo
 ================================================================ */
 
 const App = (() => {
@@ -81,6 +78,12 @@ const App = (() => {
   function _cacheDOM() {
     DOM.inputSearch          = document.getElementById('input-busqueda');
     DOM.selectProcess        = document.getElementById('select-proceso');
+    DOM.selectBand           = document.getElementById('select-banda');
+    DOM.selectLevel          = document.getElementById('select-nivel');
+    DOM.selectType           = document.getElementById('select-tipo');
+    DOM.selectCompany        = document.getElementById('select-empresa');
+    DOM.selectStatus         = document.getElementById('select-estado');
+    DOM.btnClearFilters      = document.getElementById('btn-limpiar-filtros');
     DOM.contadorResultados   = document.getElementById('contador-resultados');
     DOM.tbodyDocuments       = document.getElementById('tbody-documentos');
     DOM.filaCargando         = document.getElementById('fila-cargando');
@@ -94,6 +97,7 @@ const App = (() => {
     DOM.detailTitulo         = document.getElementById('panel-detalle-titulo');
     DOM.detailCodigo         = document.getElementById('panel-detalle-codigo');
     DOM.detailType           = document.getElementById('detalle-type');
+    DOM.detailLevel          = document.getElementById('detalle-level');
     DOM.detailProcess        = document.getElementById('detalle-process');
     DOM.detailStatus         = document.getElementById('detalle-status');
     DOM.detailVersion        = document.getElementById('detalle-version');
@@ -107,7 +111,12 @@ const App = (() => {
   /** Registra todos los event listeners de la aplicación. @private */
   function _bindEvents() {
     DOM.inputSearch.addEventListener('input', Utils.General.debounce(_applyFilters, 250));
-    DOM.selectProcess.addEventListener('change', _applyFilters);
+    [DOM.selectProcess, DOM.selectType, DOM.selectCompany, DOM.selectStatus]
+      .forEach((select) => select.addEventListener('change', _applyFilters));
+    // Banda y nivel acotan las opciones de proceso y tipo
+    DOM.selectBand.addEventListener('change', () => { _populateProcessOptions(); _applyFilters(); });
+    DOM.selectLevel.addEventListener('change', () => { _populateTypeOptions(); _applyFilters(); });
+    DOM.btnClearFilters.addEventListener('click', _clearFilters);
 
     // Delegación de eventos para los botones de acción de cada fila
     DOM.tbodyDocuments.addEventListener('click', _handleRowAction);
@@ -153,7 +162,8 @@ const App = (() => {
       }
 
       state.allDocuments = Utils.Json.normalizeDocuments(raw);
-      _populateProcessOptions(state.allDocuments);
+      _populateFilterOptions();
+      _applyURLFilters();
       _applyFilters();
 
     } catch (error) {
@@ -194,52 +204,170 @@ const App = (() => {
     return data;
   }
 
-  /**
-   * Puebla el <select> de proceso con los valores únicos presentes
-   * en los documentos cargados.
-   * @private
-   */
-  function _populateProcessOptions(documents) {
-    const processes = Utils.Table.uniqueProcesses(documents);
-    const currentValue = DOM.selectProcess.value;
-
-    DOM.selectProcess.innerHTML = '<option value="">Todos los procesos</option>';
-    processes.forEach((process) => {
-      const option = document.createElement('option');
-      option.value = process;
-      option.textContent = process;
-      DOM.selectProcess.appendChild(option);
-    });
-
-    if (processes.includes(currentValue)) DOM.selectProcess.value = currentValue;
-  }
-
-
   /* ============================================================
-     3. BÚSQUEDA Y FILTRO (se combinan)
+     3. FILTROS Y BÚSQUEDA (todos opcionales y combinables)
   ============================================================ */
 
+  /** Selects de filtro con su parámetro de URL (atributo data-param). @private */
+  function _filterSelects() {
+    return [DOM.selectProcess, DOM.selectBand, DOM.selectLevel, DOM.selectType, DOM.selectCompany, DOM.selectStatus];
+  }
+
+  /** Crea un <option>. @private */
+  function _option(value, text) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = text;
+    return option;
+  }
+
+  /** Llena un <select> con su opción "todos" y las opciones dadas, conservando el valor si sigue existiendo. @private */
+  function _fillSelect(select, allText, options) {
+    const current = select.value;
+    select.innerHTML = '';
+    select.appendChild(_option('', allText));
+    options.forEach((item) => select.appendChild(item));
+    select.value = [...select.options].some((o) => o.value === current) ? current : '';
+  }
+
+  /** Llena todos los filtros desde catalog.js. @private */
+  function _populateFilterOptions() {
+    _fillSelect(DOM.selectBand, 'Todas',
+      Catalog.BANDS.map((band) => _option(band.code, band.name)));
+    _fillSelect(DOM.selectLevel, 'Todos',
+      Catalog.LEVELS.map((level) => _option(level.code, `${level.code} · ${level.name}`)));
+    // TODAS no es opción: al elegir una empresa se incluyen los documentos de TODAS
+    _fillSelect(DOM.selectCompany, 'Todas',
+      Catalog.COMPANIES.filter((c) => c !== Catalog.COMPANY_ALL).map((c) => _option(c, Catalog.companyLabel(c))));
+    _fillSelect(DOM.selectStatus, 'Todos',
+      Utils.Status.ALL.map((st) => _option(st, Utils.Status.label(st))));
+    _populateProcessOptions();
+    _populateTypeOptions();
+  }
+
   /**
-   * Aplica la búsqueda por palabra clave y el filtro de proceso
-   * (ambos opcionales y combinables) sobre state.allDocuments,
-   * y renderiza el resultado.
-   * @private
+   * Llena el filtro de proceso agrupado por banda ("TAL — Taller"),
+   * solo con la banda elegida si hay una. Las siglas de los datos que no
+   * están en el catálogo van en "Otros". @private
    */
-  function _applyFilters() {
-    const keyword = DOM.inputSearch.value;
-    const process = DOM.selectProcess.value;
+  function _populateProcessOptions() {
+    const bandCode = DOM.selectBand.value;
+    const groups = [];
 
-    let results = state.allDocuments;
+    Catalog.BANDS.filter((band) => !bandCode || band.code === bandCode).forEach((band) => {
+      band.groups.forEach((group) => {
+        const optgroup = document.createElement('optgroup');
+        optgroup.label = group.name ? `${band.name} · ${group.name}` : band.name;
+        group.processes.forEach((code) =>
+          optgroup.appendChild(_option(code, `${code} — ${Catalog.processName(code)}`)));
+        groups.push(optgroup);
+      });
+    });
 
-    if (process) {
-      results = results.filter((doc) => doc.process === process);
+    const unknown = Utils.Table.uniqueProcesses(state.allDocuments).filter((code) => !Catalog.bandOf(code));
+    if (unknown.length && !bandCode) {
+      const optgroup = document.createElement('optgroup');
+      optgroup.label = 'Otros';
+      unknown.forEach((code) => optgroup.appendChild(_option(code, code)));
+      groups.push(optgroup);
     }
 
-    results = Utils.Table.filterByKeyword(results, keyword);
+    _fillSelect(DOM.selectProcess, 'Todos', groups);
+  }
+
+  /** Llena el filtro de tipo ("PR — Procedimiento"), solo con el nivel elegido si hay uno. @private */
+  function _populateTypeOptions() {
+    const level = Catalog.LEVELS.find((l) => l.code === DOM.selectLevel.value);
+    const types = Catalog.TYPES.filter((t) => !level || level.types.includes(t.code));
+    _fillSelect(DOM.selectType, 'Todos', types.map((t) => _option(t.code, `${t.code} — ${t.name}`)));
+  }
+
+  /**
+   * Aplica los filtros que vienen en la URL (?proceso=TAL…). La comparación
+   * ignora mayúsculas, tildes y espacios/guiones; también acepta el texto
+   * visible de la opción. Los valores que no existen se ignoran con aviso. @private
+   */
+  function _applyURLFilters() {
+    const params = new URLSearchParams(window.location.search);
+    const ignored = [];
+    const slug = Utils.General.slug;
+
+    const setFrom = (select) => {
+      const raw = params.get(select.dataset.param);
+      if (raw === null || raw.trim() === '') return;
+      const wanted = slug(raw);
+      const match = [...select.options].find((o) => o.value &&
+        (slug(o.value) === wanted || slug(o.textContent) === wanted ||
+         slug(o.textContent.split(/ — | · /).pop()) === wanted));
+      if (match) select.value = match.value;
+      else ignored.push(`${select.dataset.param}=${raw}`);
+    };
+
+    // Banda y nivel primero: acotan las opciones de proceso y tipo
+    setFrom(DOM.selectBand);   _populateProcessOptions();
+    setFrom(DOM.selectLevel);  _populateTypeOptions();
+    [DOM.selectProcess, DOM.selectType, DOM.selectCompany, DOM.selectStatus].forEach(setFrom);
+
+    const keyword = params.get('q');
+    if (keyword) DOM.inputSearch.value = keyword;
+
+    if (ignored.length) {
+      Utils.Toast.warning(`Se ignoró un filtro de la dirección que no existe: ${ignored.join(', ')}.`);
+    }
+  }
+
+  /** Refleja los filtros activos en la URL (sin recargar), para compartir el enlace. @private */
+  function _syncURL() {
+    const params = new URLSearchParams();
+    _filterSelects().forEach((select) => {
+      if (!select.value) return;
+      // Proceso y tipo por su sigla (?proceso=TAL); el resto en forma corta (?estado=en-revision)
+      const keepCode = select === DOM.selectProcess || select === DOM.selectType;
+      params.set(select.dataset.param, keepCode ? select.value : Utils.General.slug(
+        select === DOM.selectLevel ? Catalog.LEVELS.find((l) => l.code === select.value).name : select.value));
+    });
+    const keyword = DOM.inputSearch.value.trim();
+    if (keyword) params.set('q', keyword);
+    const query = params.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}`);
+  }
+
+  /** Quita todos los filtros y la búsqueda. @private */
+  function _clearFilters() {
+    DOM.inputSearch.value = '';
+    _filterSelects().forEach((select) => { select.value = ''; });
+    _populateProcessOptions();
+    _populateTypeOptions();
+    _applyFilters();
+    DOM.inputSearch.focus();
+  }
+
+  /** Aplica búsqueda y filtros sobre state.allDocuments y renderiza el resultado. @private */
+  function _applyFilters() {
+    const f = {
+      process: DOM.selectProcess.value,
+      band:    DOM.selectBand.value,
+      level:   DOM.selectLevel.value,
+      type:    DOM.selectType.value,
+      company: DOM.selectCompany.value,
+      status:  DOM.selectStatus.value,
+    };
+
+    let results = state.allDocuments.filter((doc) =>
+      (!f.process || doc.process === f.process) &&
+      (!f.band    || doc.band === f.band) &&
+      (!f.level   || doc.level === f.level) &&
+      (!f.type    || doc.type === f.type) &&
+      // Empresa: la elegida o TODAS (aplica a las tres)
+      (!f.company || doc.company === f.company || doc.company === Catalog.COMPANY_ALL) &&
+      (!f.status  || doc.status === f.status));
+
+    results = Utils.Table.filterByKeyword(results, DOM.inputSearch.value);
 
     state.visibleDocuments = results;
     _renderTable(results);
     _updateResultsCount(results.length);
+    _syncURL();
   }
 
   /** Actualiza el contador de resultados en la barra de búsqueda. @private */
@@ -385,6 +513,8 @@ const App = (() => {
     DOM.detailTitulo.textContent      = doc.documentName;
     DOM.detailCodigo.textContent      = doc.code;
     DOM.detailType.textContent        = Catalog.typeName(doc.type) || '—';
+    const level = Catalog.levelOf(doc.type);
+    DOM.detailLevel.textContent       = level ? `${level.name} (nivel ${level.code})` : '—';
     DOM.detailProcess.textContent     = doc.process || '—';
     DOM.detailStatus.textContent      = Utils.Status.label(doc.status) || '—';
     DOM.detailStatus.className        = `badge-estado ${Utils.Status.badgeClass(doc.status)}`;

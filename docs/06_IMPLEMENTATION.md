@@ -55,8 +55,12 @@ Decisiones aprobadas:
 
 ## Fase 7 — Filtros, búsqueda y enlace por URL
 
-- [ ] Búsqueda por nombre y por código; filtros de proceso («TAL — Taller», agrupados por banda), banda, tipo, empresa y estado; botón «Limpiar filtros»; parámetros de URL `?proceso=` (y banda, tipo, empresa, estado).
-- [ ] Validación: combinaciones de filtros dan el resultado esperado contra los datos demo; `?proceso=TAL` y `?proceso=tal` abren filtrado; una sigla inexistente se ignora con aviso; elegir banda acota el filtro de proceso; empresa incluye TODAS; filtros con etiqueta y operables por teclado; 0 desbordamiento horizontal en los 3 anchos.
+- [x] Búsqueda por nombre y por código; filtros de proceso («TAL — Taller», agrupados por banda), banda, tipo, empresa y estado; botón «Limpiar filtros»; parámetros de URL `?proceso=` (y banda, tipo, empresa, estado).
+- [x] **Ampliación aprobada por el usuario al arrancar la fase (2026-10-13):** nivel de la pirámide documental como filtro y como campo en «Ver más» — 1 Estratégico (CA, PO, MA), 2 Táctico (PR, PG), 3 Operativo (INT, GU, MT), 4 Evidencia (RG, OT); se deduce del tipo (`Catalog.LEVELS`), no es columna del listado. Elegir nivel acota el filtro de tipo; parámetro de URL `?nivel=`.
+- [x] Validación: combinaciones de filtros dan el resultado esperado contra los datos demo; `?proceso=TAL` y `?proceso=tal` abren filtrado; una sigla inexistente se ignora con aviso; elegir banda acota el filtro de proceso; empresa incluye TODAS; filtros con etiqueta y operables por teclado; 0 desbordamiento horizontal en los 3 anchos.
+  - Resultado (2026-10-13, QA headless servido por HTTP local): 27/27 comprobaciones OK — `?proceso=TAL` y `?proceso=tal` (3 docs), `?proceso=XYZ` ignorado con aviso, URL combinada en formas cortas (`estado=en-revision&empresa=los-autos&nivel=tactico`) y banda con tilde y espacios + `q`; búsqueda por código (`tal-rg`) y por nombre; banda acota procesos y reinicia un proceso fuera de ella; nivel acota tipos (Evidencia → RG, OT; 6 docs; Estratégico 4 docs); combinación Apoyo + Vigente (5); empresa LOS AUTOS incluye TODAS (17); la URL refleja los filtros (`replaceState`) y «Limpiar filtros» la vacía; panel muestra «Táctico (nivel 2)»; los 7 controles con etiqueta, orden de foco correcto y select operable con teclado; 0 desbordamiento en 375/768/1280; 0 errores de consola. Regresión de las Fases 5 y 6: OK.
+  - Ajuste visual durante la validación: en 375 px se recortaba el texto «Todas las bandas…»; las opciones «todos» pasan a «Todos»/«Todas» (la etiqueta ya nombra el filtro).
+  - Criterio de diseño: el filtro de proceso lista todos los procesos del catálogo (aunque no tengan documentos), para que el enlace desde cualquier tarjeta del mapa funcione; las siglas de los datos que no están en el catálogo van en «Otros».
 
 ## Fase 8 — Tabla y panel de detalle
 

@@ -13,7 +13,8 @@
 - **Cambio de alcance (2026-10-13, aprobado):** alineación con la estructura propuesta del listado maestro de documentos + logo de Los Coches. Fases nuevas 5–9; Power Automate pasa a la Fase 10 y el cierre a la 11 (ver `06_IMPLEMENTATION.md`).
 - Fase 5 (Logo y favicon): **completa**.
 - Fase 6 (Modelo de datos de la propuesta): **completa**.
-- Fase 7 (Filtros, búsqueda y enlace por URL): pendiente de iniciar.
+- Fase 7 (Filtros, búsqueda y enlace por URL, + nivel documental): **completa**.
+- Fase 8 (Tabla y panel de detalle): pendiente de iniciar.
 
 ## Validación
 
@@ -32,6 +33,7 @@
 
 - Fase 5 validada con QA headless servido por HTTP local (2026-10-13) en 375/768/1280 px: logotipo visible de 186 px (mínimo 180, lámina 09), proporción conservada, título fuera de la caja del SVG y sin recorte, favicon SVG responde 200, 0 desbordamiento horizontal, 0 errores de consola y 0 respuestas ≥ 400. Revisión visual de las capturas a 375 y 1280 px. Rótulos de versión actualizados (`v0.2`, pie sin número de fase).
 - Fase 6 validada con QA headless (2026-10-13): 20/20 comprobaciones del modelo (20 columnas, tolerancia de encabezados y fechas, códigos `SIGLA-TIPO-NNN`, variantes por código+empresa, anexos, bandas, cobertura de tipos y estados, badges, regla de descarga con EN REVISIÓN bloqueado), 0 errores de consola, 0 referencias a estados retirados, 0 coincidencias de códigos demo con el listado real. Regresión de la Fase 5 OK.
+- Fase 7 validada con QA headless (2026-10-13): 27/27 comprobaciones (parámetros de URL, búsqueda por nombre y código, filtros dependientes banda→proceso y nivel→tipo, empresa con TODAS, URL sincronizada, «Limpiar filtros», nivel en el panel, etiquetas y teclado, 0 desbordamiento en 375/768/1280, 0 errores). Se agregó el nivel documental a pedido del usuario. Regresión de las Fases 5 y 6 OK.
 
 ## Bloqueos
 
@@ -39,4 +41,4 @@
 
 ## Siguiente paso
 
-Iniciar Fase 7: filtros (proceso con nombre y agrupado por banda, banda, tipo, empresa con TODAS, estado), búsqueda por nombre y código, «Limpiar filtros» y parámetros de URL (`?proceso=TAL`).
+Iniciar Fase 8: tabla con Versión y Empresa; panel con todos los campos por secciones, fecha límite vencida marcada, anexos y variantes clicables, y botón «Abrir» (solo VIGENTE) con aviso si falta UBICACIÓN.
