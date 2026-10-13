@@ -29,7 +29,7 @@
 
 ```json
 {
-  "requestType": "NEW | NEW_VERSION | ANNEX | VARIANT",
+  "requestType": "NEW | NEW_VERSION | ANNEX | VARIANT | RETIRE",
   "requestedAt": "2026-10-13T15:04:05.000Z",
   "reviewDeadline": "2026-10-28",
   "document": {
@@ -52,19 +52,23 @@
 
 | Campo | Regla por tipo de solicitud |
 |---|---|
-| `document.code` | `NEW_VERSION` y `VARIANT`: código existente. `NEW` y `ANNEX`: vacío (lo asigna F3) |
+| `document.code` | `NEW_VERSION`, `VARIANT` y `RETIRE`: código existente. `NEW` y `ANNEX`: vacío (lo asigna F3) |
 | `document.proposedCode` | Vista previa calculada en el navegador: `NEW` → siguiente consecutivo de SIGLA-TIPO; `ANNEX` → principal + siguiente `-ANnn`; los demás → el código existente. **Informativo: F3 recalcula al aprobar** |
 | `document.parentCode` | Solo `ANNEX`: código del documento principal |
-| `document.company` | `NEW`: elegida (por defecto TODAS). `VARIANT`: una empresa que el documento aún no tiene. `NEW_VERSION` y `ANNEX`: la del documento existente |
-| `document.currentVersion` | `NEW_VERSION` y `VARIANT`: versión vigente del documento existente |
+| `document.company` | `NEW`: elegida (por defecto TODAS). `VARIANT`: una empresa que el documento aún no tiene. `NEW_VERSION`, `ANNEX` y `RETIRE`: la del documento existente (la solicitud aplica solo a esa fila: cada variante por empresa va en su propia solicitud) |
+| `document.currentVersion` | `NEW_VERSION`, `VARIANT` y `RETIRE`: versión vigente del documento existente |
 | `reviewDeadline` | Solo `NEW_VERSION`: fecha de la solicitud + `REVIEW_DAYS` (15 días calendario). Vacío en los demás |
-| `retention.*` | Solo si `document.type` es `RG` (años enteros 0–100 y disposición obligatorios); si no, `null` / vacío |
+| `retention.*` | Solo si `document.type` es `RG` y no es `RETIRE` (años enteros 0–100 y disposición obligatorios); si no, `null` / vacío |
+| `change.description` | Obligatoria: motivo de creación (`NEW`), descripción del cambio, o motivo del retiro (`RETIRE`) |
+| `change.preparedBy` / `approvedBy` | Obligatorios salvo en `RETIRE` (vacíos) |
+| `change.notes` | Notas del líder para Sistemas de Gestión: van a la solicitud y a la aprobación, **nunca a la columna OBSERVACIONES del listado** |
 | `requester.email` | En minúsculas |
+| `file` | `null` en `RETIRE` (el retiro no lleva archivo) |
 | `file.contentBase64` | Contenido del archivo en base64, sin el prefijo `data:` |
 
-**Validaciones de F2 (servidor; el navegador ya valida lo mismo, pero F2 no debe confiar en él):** `requestType` válido; campos obligatorios; `file.extension` ∈ {pdf, docx, xlsx, pptx}; `file.sizeBytes` ≤ 20 MB; dominio de `requester.email` permitido; para `NEW_VERSION`, `VARIANT` y `ANNEX`, que el código existente esté en el listado y no esté OBSOLETO ni ELIMINADO.
+**Validaciones de F2 (servidor; el navegador ya valida lo mismo, pero F2 no debe confiar en él):** `requestType` válido; campos obligatorios; salvo en `RETIRE`, `file.extension` ∈ {pdf, docx, xlsx, pptx} y `file.sizeBytes` ≤ 20 MB; dominio de `requester.email` permitido; para `NEW_VERSION`, `VARIANT`, `ANNEX` y `RETIRE`, que el código existente esté en el listado y no esté OBSOLETO ni ELIMINADO.
 
-**Acciones:** guardar el archivo en `_Pendientes` (no público) con el número de solicitud en el nombre; crear el elemento en la lista de SharePoint «Solicitudes de cargue» (estado PENDIENTE, con todos los campos del cuerpo salvo el contenido del archivo y la ruta del archivo guardado); si es `NEW_VERSION`, poner el documento EN REVISIÓN con `FECHA LÍMITE DE REVISIÓN` = `reviewDeadline`.
+**Acciones:** guardar el archivo en `_Pendientes` (no público) con el número de solicitud en el nombre (salvo `RETIRE`, que no lleva archivo); crear el elemento en la lista de SharePoint «Solicitudes de cargue» (estado PENDIENTE, con todos los campos del cuerpo salvo el contenido del archivo y la ruta del archivo guardado); si es `NEW_VERSION`, poner el documento EN REVISIÓN con `FECHA LÍMITE DE REVISIÓN` = `reviewDeadline`.
 
 **Respuesta:** `200` con `{ "requestId": "SOL-2026-0001", "status": "PENDIENTE" }`. Con datos inválidos: `400` con `{ "error": "mensaje para el usuario" }`. La consulta muestra el `requestId`; si no llega, trata la respuesta como error.
 
@@ -74,12 +78,17 @@
 
 1. Aprobación («Iniciar y esperar una aprobación») asignada a Sistemas de Gestión, con el resumen de la solicitud y el enlace al archivo en `_Pendientes`.
 2. **Rechazada:** estado RECHAZADA en la lista, archivo a `_Rechazados`, aviso al solicitante con los comentarios; si era `NEW_VERSION`, el documento vuelve a VIGENTE sin fecha límite.
-3. **Aprobada** — código definitivo (se recalcula, nunca se reutiliza un consecutivo, se cuentan todos los estados):
-   - `NEW`: siguiente consecutivo libre de `SIGLA-TIPO-NNN`.
-   - `ANNEX`: `CÓDIGO_PRINCIPAL-ANnn` con el siguiente `nn` libre.
-   - `NEW_VERSION`: mismo código, versión = `currentVersion` + 1.
+3. **Aprobada** — código y versión definitivos (el código se recalcula; nunca se reutiliza un consecutivo; se cuentan todos los estados):
+   - `NEW`: siguiente consecutivo libre de `SIGLA-TIPO-NNN`, **versión 1**.
+   - `ANNEX`: `CÓDIGO_PRINCIPAL-ANnn` con el siguiente `nn` libre, **versión 1** (los anexos tienen su propio control de versiones; decisión 2026-10-13).
+   - `NEW_VERSION`: mismo código, versión = `currentVersion` + 1. Si el código tiene variantes por empresa, solo cambia la fila de la empresa de la solicitud; cada variante se actualiza con su propia solicitud (SG cuida que queden en la misma versión).
    - `VARIANT`: mismo código y versión, con la empresa de la solicitud (si el documento estaba con EMPRESA = TODAS, SG ajusta ese registro).
-4. Renombrar el archivo «CÓDIGO Nombre Vn.ext» (variante: « - EMPRESA» al final) y moverlo a la carpeta del proceso (banda / grupo / «SIGLA - Nombre»).
-5. `NEW_VERSION`: mover la versión anterior a `_Obsoletos` del proceso.
-6. Listado: `NEW`, `ANNEX` y `VARIANT` agregan una fila VIGENTE; `NEW_VERSION` actualiza la fila (VERSIÓN, FECHA DE VIGENCIA = fecha de aprobación, ESTADO = VIGENTE, FECHA LÍMITE vacía, CONTROL DE CAMBIOS, UBICACIÓN). UBICACIÓN = enlace directo al archivo (con extensión).
+   - `RETIRE`: sin código nuevo.
+4. Archivo (salvo `RETIRE`): renombrar «CÓDIGO Nombre Vn.ext» (variante: « - EMPRESA» al final) y moverlo a la carpeta del proceso (banda / grupo / «SIGLA - Nombre»).
+5. `NEW_VERSION`: mover la versión anterior a `_Obsoletos` del proceso. `RETIRE`: mover el archivo vigente a `_Obsoletos`; los anexos vigentes del documento los decide SG en la misma aprobación.
+6. Listado — FECHA DE VIGENCIA = fecha de aprobación en todos los casos que publican; UBICACIÓN = enlace directo al archivo (con extensión); CONTROL DE CAMBIOS = `AAAA-MM-DD · vN → vN+1 · descripción` (en `NEW` y `ANNEX`: `AAAA-MM-DD · v1 · Creación: motivo`; en `VARIANT`: `AAAA-MM-DD · Variante EMPRESA · descripción`); OBSERVACIONES no se toca:
+   - `NEW` y `ANNEX`: agregar fila VIGENTE con todas las columnas de la solicitud (BANDA según el proceso; DOCUMENTO PRINCIPAL en `ANNEX`).
+   - `VARIANT`: agregar fila copiando las columnas de la fila base y cambiando EMPRESA, UBICACIÓN, FECHA DE VIGENCIA y CONTROL DE CAMBIOS.
+   - `NEW_VERSION`: actualizar la fila (código + empresa): VERSIÓN, FECHA DE VIGENCIA, ESTADO = VIGENTE, FECHA LÍMITE vacía, UBICACIÓN, CONTROL DE CAMBIOS y, si el líder los cambió, NOMBRE, CARGO QUE ELABORA, CARGO QUE APRUEBA y la retención.
+   - `RETIRE`: ESTADO = ELIMINADO, FECHA LÍMITE vacía, CONTROL DE CAMBIOS = `AAAA-MM-DD · Retiro · motivo`; UBICACIÓN pasa al archivo en `_Obsoletos`.
 7. Estado APROBADA en la lista con el código definitivo; aviso al solicitante.

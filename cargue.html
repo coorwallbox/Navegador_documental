@@ -99,6 +99,13 @@
                   <span class="opcion-cargue__ayuda">Mismo código para otra empresa.</span>
                 </span>
               </label>
+              <label class="opcion-cargue">
+                <input type="radio" name="requestType" value="RETIRE" />
+                <span class="opcion-cargue__texto">
+                  <span class="opcion-cargue__titulo">Retiro del documento</span>
+                  <span class="opcion-cargue__ayuda">Queda Eliminado; su código no se reutiliza.</span>
+                </span>
+              </label>
             </div>
           </fieldset>
 
@@ -114,7 +121,7 @@
             <p id="cargue-aviso-existente" class="form-cargue__nota form-cargue__nota--aviso" hidden></p>
           </fieldset>
 
-          <fieldset class="panel-detalle__seccion form-cargue__grupo">
+          <fieldset id="cargue-seccion-documento" class="panel-detalle__seccion form-cargue__grupo">
             <legend class="panel-detalle__seccion-titulo">Datos del documento</legend>
             <div class="form-cargue__fila">
             <div class="campo">
@@ -168,13 +175,13 @@
           </fieldset>
 
           <fieldset class="panel-detalle__seccion form-cargue__grupo">
-            <legend class="panel-detalle__seccion-titulo">Cambio y responsables</legend>
+            <legend id="cargue-leyenda-cambio" class="panel-detalle__seccion-titulo">Cambio y responsables</legend>
             <div class="campo">
               <label id="cargue-descripcion-etiqueta" for="cargue-descripcion" class="campo__label">Motivo de creación</label>
               <textarea id="cargue-descripcion" class="campo__input campo__input--area" rows="3"></textarea>
               <p id="cargue-descripcion-error" class="campo__error" hidden></p>
             </div>
-            <div class="form-cargue__fila">
+            <div id="cargue-fila-cargos" class="form-cargue__fila">
             <div class="campo">
               <label for="cargue-elabora" class="campo__label">Cargo que elabora</label>
               <input id="cargue-elabora" type="text" class="campo__input" maxlength="120" />
@@ -187,7 +194,7 @@
             </div>
             </div>
             <div class="campo">
-              <label for="cargue-observaciones" class="campo__label">Observaciones (opcional)</label>
+              <label for="cargue-observaciones" class="campo__label">Notas para Sistemas de Gestión (opcional; no se publican en el listado)</label>
               <textarea id="cargue-observaciones" class="campo__input campo__input--area" rows="2"></textarea>
               <p id="cargue-observaciones-error" class="campo__error" hidden></p>
             </div>
@@ -209,7 +216,7 @@
             </div>
           </fieldset>
 
-          <fieldset class="panel-detalle__seccion form-cargue__grupo">
+          <fieldset id="cargue-seccion-archivo" class="panel-detalle__seccion form-cargue__grupo">
             <legend class="panel-detalle__seccion-titulo">Archivo</legend>
             <div class="campo">
               <label for="cargue-archivo" class="campo__label">Archivo del documento</label>

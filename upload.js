@@ -5,7 +5,8 @@
    global Upload). La consulta no la enlaza (ajuste 2026-10-13).
    Un líder de proceso envía una solicitud; Sistemas de Gestión la
    aprueba y el flujo F3 publica (ver docs/03_TRD.md, contrato F2).
-   Casos: documento nuevo, nueva versión, anexo y variante por empresa.
+   Casos: documento nuevo, nueva versión, anexo, variante por empresa y
+   retiro (sin archivo; al aprobarse queda ELIMINADO).
    Sin URL_UPLOAD configurada, el envío se simula (modo demo).
    Depende de: config.js, config-cargue.js, catalog.js, utils.js y
    demo-data.js (lista de documentos en modo demo).
@@ -38,6 +39,7 @@ const Upload = (() => {
     NEW_VERSION: 'NEW_VERSION',
     ANNEX:       'ANNEX',
     VARIANT:     'VARIANT',
+    RETIRE:      'RETIRE',
   };
 
   /** Estados desde los que no se puede pedir un cargue sobre un documento existente. */
@@ -97,6 +99,10 @@ const Upload = (() => {
       resultText:     $('cargue-resultado-texto'),
       resultSummary:  $('cargue-resultado-resumen'),
       sectionExisting:$('cargue-seccion-existente'),
+      sectionDocument:$('cargue-seccion-documento'),
+      sectionFile:    $('cargue-seccion-archivo'),
+      rowRoles:       $('cargue-fila-cargos'),
+      legendChange:   $('cargue-leyenda-cambio'),
       legendExisting: $('cargue-leyenda-existente'),
       inputDocument:  $('cargue-documento'),
       listDocuments:  $('cargue-documentos-lista'),
@@ -203,20 +209,29 @@ const Upload = (() => {
     DOM.summary.hidden = true;
     DOM.noteExisting.hidden = true;
     DOM.sectionExisting.hidden = isNew;
+    const isRetire = type === TYPES.RETIRE;
     DOM.legendExisting.textContent = {
       NEW_VERSION: 'Documento a actualizar',
       ANNEX:       'Documento principal',
       VARIANT:     'Documento base de la variante',
+      RETIRE:      'Documento a retirar',
     }[type] || '';
-    DOM.labelDescription.textContent = isNew ? 'Motivo de creación' : 'Descripción del cambio';
+    DOM.labelDescription.textContent = isNew ? 'Motivo de creación' : isRetire ? 'Motivo del retiro' : 'Descripción del cambio';
+    DOM.legendChange.textContent = isRetire ? 'Motivo' : 'Cambio y responsables';
+
+    // Retiro: sin datos del documento, cargos ni archivo (solo el documento elegido y el motivo)
+    DOM.sectionDocument.hidden = isRetire;
+    DOM.sectionFile.hidden = isRetire;
+    DOM.rowRoles.hidden = isRetire;
+    [DOM.preparedBy, DOM.approvedBy, DOM.file].forEach((el) => { el.disabled = isRetire; });
 
     // Proceso y tipo solo se eligen en un documento nuevo; en los demás vienen del existente
     DOM.process.disabled = !isNew;
     DOM.type.disabled = !isNew;
-    // Nombre: editable salvo en variante (es el mismo documento)
-    DOM.name.disabled = type === TYPES.VARIANT;
-    // Empresa: se elige en nuevo y variante; en nueva versión y anexo es la del existente
-    DOM.company.disabled = type === TYPES.NEW_VERSION || type === TYPES.ANNEX;
+    // Nombre: editable salvo en variante (es el mismo documento) y retiro
+    DOM.name.disabled = type === TYPES.VARIANT || isRetire;
+    // Empresa: se elige en nuevo y variante; en los demás es la del existente
+    DOM.company.disabled = !(isNew || type === TYPES.VARIANT);
     DOM.name.placeholder = type === TYPES.ANNEX ? 'Ej. Anexo 2. Matriz de responsables' : '';
 
     if (isNew) {
@@ -322,6 +337,20 @@ const Upload = (() => {
     if (type === TYPES.NEW_VERSION && doc.status === Utils.Status.EN_REVISION) {
       note = 'Este documento ya está En revisión: confirma con Sistemas de Gestión que no haya otra solicitud en curso.';
     }
+    if (type === TYPES.NEW_VERSION || type === TYPES.RETIRE) {
+      const variants = state.getDocuments().filter((d) => d.code === doc.code && d.company !== doc.company);
+      if (variants.length) {
+        note = `${note ? `${note} ` : ''}Este código tiene variantes (${variants.map((d) => Catalog.companyLabel(d.company)).join(', ')}): `
+          + 'esta solicitud aplica solo a la empresa elegida; cada variante va en su propia solicitud.';
+      }
+    }
+    if (type === TYPES.RETIRE) {
+      const annexes = state.getDocuments().filter((d) => d.parentCode === doc.code && !CLOSED_STATUSES.includes(d.status));
+      if (annexes.length) {
+        note = `${note ? `${note} ` : ''}Tiene ${annexes.length === 1 ? 'un anexo vigente' : `${annexes.length} anexos vigentes`} `
+          + `(${[...new Set(annexes.map((d) => d.code))].join(', ')}): Sistemas de Gestión decidirá si también se retiran.`;
+      }
+    }
     DOM.noteExisting.textContent = note;
     DOM.noteExisting.hidden = !note;
     _updateDerived();
@@ -330,7 +359,7 @@ const Upload = (() => {
   /** Recalcula la retención visible y la vista previa del código. @private */
   function _updateDerived() {
     const type = _requestType();
-    const isRG = DOM.type.value === 'RG';
+    const isRG = DOM.type.value === 'RG' && type !== TYPES.RETIRE;
     DOM.sectionRetention.hidden = !isRG;
     [DOM.retManagement, DOM.retCentral, DOM.disposition, DOM.basis].forEach((el) => { el.disabled = !isRG; });
     DOM.codePreview.textContent = _codePreviewText(type);
@@ -345,8 +374,11 @@ const Upload = (() => {
       return `Código provisional: ${proposedCode(docs, TYPES.NEW, { process: DOM.process.value, type: DOM.type.value })} (lo confirma SG al aprobar).`;
     }
     if (!doc) return '';
+    if (type === TYPES.RETIRE) {
+      return `Al aprobarse, ${doc.code} (${Catalog.companyLabel(doc.company)}) queda Eliminado: su archivo pasa a _Obsoletos y el código no se reutiliza.`;
+    }
     if (type === TYPES.ANNEX) {
-      return `Código provisional: ${proposedCode(docs, TYPES.ANNEX, { parentCode: doc.code })} (lo confirma SG al aprobar).`;
+      return `Código provisional: ${proposedCode(docs, TYPES.ANNEX, { parentCode: doc.code })}, versión 1 (lo confirma SG al aprobar).`;
     }
     if (type === TYPES.NEW_VERSION) {
       const next = (parseInt(doc.version, 10) || 0) + 1;
@@ -408,14 +440,15 @@ const Upload = (() => {
     if (type === TYPES.VARIANT && state.selected && !DOM.company.value) {
       errors.push([DOM.company, 'No hay empresas disponibles para una variante de este documento.']);
     }
-    if (DOM.type.value === 'RG') {
+    if (DOM.type.value === 'RG' && type !== TYPES.RETIRE) {
       ['retManagement', 'retCentral'].forEach((key) => {
         const value = DOM[key].value.trim();
         if (!/^\d{1,3}$/.test(value) || Number(value) > 100) errors.push([DOM[key], 'Escribe un número entero de años (0 a 100).']);
       });
       required(DOM.disposition, 'Elige la disposición final.');
     }
-    required(DOM.description, type === TYPES.NEW ? 'Explica el motivo de creación.' : 'Describe el cambio.');
+    required(DOM.description, type === TYPES.NEW ? 'Explica el motivo de creación.'
+      : type === TYPES.RETIRE ? 'Explica el motivo del retiro.' : 'Describe el cambio.');
     required(DOM.preparedBy, 'Escribe el cargo que elabora.');
     required(DOM.approvedBy, 'Escribe el cargo que aprueba.');
     required(DOM.requesterName, 'Escribe tu nombre.');
@@ -429,7 +462,9 @@ const Upload = (() => {
     }
 
     const file = DOM.file.files[0];
-    if (!file) {
+    if (DOM.file.disabled) {
+      // Retiro: no lleva archivo
+    } else if (!file) {
       errors.push([DOM.file, 'Adjunta el archivo.']);
     } else {
       const extension = Utils.General.fileExtension(file.name);
@@ -517,14 +552,14 @@ const Upload = (() => {
   async function buildPayload() {
     const type = _requestType();
     const doc = state.selected;
-    const file = DOM.file.files[0];
-    const isRG = DOM.type.value === 'RG';
+    const file = type === TYPES.RETIRE ? null : DOM.file.files[0];
+    const isRG = DOM.type.value === 'RG' && type !== TYPES.RETIRE;
     const band = Catalog.bandOf(DOM.process.value);
     const docs = state.getDocuments();
     const today = Utils.Format.todayISO();
 
     let code = '';
-    if (type === TYPES.NEW_VERSION || type === TYPES.VARIANT) code = doc.code;
+    if (type === TYPES.NEW_VERSION || type === TYPES.VARIANT || type === TYPES.RETIRE) code = doc.code;
 
     return {
       requestType: type,
@@ -541,7 +576,7 @@ const Upload = (() => {
         process: DOM.process.value,
         band: band ? band.code : '',
         company: DOM.company.value,
-        currentVersion: type === TYPES.NEW_VERSION || type === TYPES.VARIANT ? (doc.version || '') : '',
+        currentVersion: [TYPES.NEW_VERSION, TYPES.VARIANT, TYPES.RETIRE].includes(type) ? (doc.version || '') : '',
       },
       retention: {
         managementYears: isRG ? Number(DOM.retManagement.value) : null,
@@ -551,21 +586,22 @@ const Upload = (() => {
       },
       change: {
         description: DOM.description.value.trim(),
-        preparedBy: DOM.preparedBy.value.trim(),
-        approvedBy: DOM.approvedBy.value.trim(),
+        preparedBy: type === TYPES.RETIRE ? '' : DOM.preparedBy.value.trim(),
+        approvedBy: type === TYPES.RETIRE ? '' : DOM.approvedBy.value.trim(),
         notes: DOM.notes.value.trim(),
       },
       requester: {
         name: DOM.requesterName.value.trim(),
         email: DOM.requesterEmail.value.trim().toLowerCase(),
       },
-      file: {
+      // Retiro: sin archivo (null)
+      file: file ? {
         name: file.name,
         extension: Utils.General.fileExtension(file.name),
         sizeBytes: file.size,
         contentType: file.type || 'application/octet-stream',
         contentBase64: await _readBase64(file),
-      },
+      } : null,
     };
   }
 
@@ -596,7 +632,8 @@ const Upload = (() => {
   /** Muestra la confirmación con el número de solicitud. @private */
   function _showResult(payload, response) {
     const escape = Utils.General.escapeHTML;
-    const labels = { NEW: 'Documento nuevo', NEW_VERSION: 'Nueva versión', ANNEX: 'Anexo', VARIANT: 'Variante por empresa' };
+    const labels = { NEW: 'Documento nuevo', NEW_VERSION: 'Nueva versión', ANNEX: 'Anexo', VARIANT: 'Variante por empresa',
+      RETIRE: 'Retiro del documento' };
     const d = payload.document;
     DOM.resultText.innerHTML = `Solicitud <strong>${escape(response.requestId)}</strong> enviada. Sistemas de Gestión la revisará;
       te llegará la respuesta a <strong>${escape(payload.requester.email)}</strong>.`;
@@ -605,7 +642,7 @@ const Upload = (() => {
       ['Código', d.code || `${d.proposedCode} (provisional)`],
       ['Documento', d.name],
       ['Empresa', Catalog.companyLabel(d.company)],
-      ['Archivo', `${payload.file.name} (${(payload.file.sizeBytes / 1048576).toFixed(2)} MB)`],
+      ['Archivo', payload.file ? `${payload.file.name} (${(payload.file.sizeBytes / 1048576).toFixed(2)} MB)` : '— (retiro sin archivo)'],
     ].map(([k, v]) => `<div class="panel-detalle__campo"><dt class="panel-detalle__etiqueta">${escape(k)}</dt>
       <dd class="panel-detalle__valor">${escape(v)}</dd></div>`).join('');
 

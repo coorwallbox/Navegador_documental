@@ -62,8 +62,9 @@ const DEMO_DOCUMENTS = (() => {
       'VERSIÓN': '5', 'FECHA DE VIGENCIA': '2026-03-09',
       'CONTROL DE CAMBIOS': '2026-03-09 · v4 → v5 · Se incorpora la estructura de carpetas por bandas.',
     }),
+    // Anexos: control de versiones propio, empiezan en la versión 1 (decisión 2026-10-13)
     row('SG-MA-083-AN01', 'Anexo 1. Matriz de comunicaciones internas', 'MA', 'SG', 'VIGENTE', {
-      'VERSIÓN': '5', 'FECHA DE VIGENCIA': '2026-03-09', 'DOCUMENTO PRINCIPAL': 'SG-MA-083',
+      'VERSIÓN': '1', 'FECHA DE VIGENCIA': '2026-03-09', 'DOCUMENTO PRINCIPAL': 'SG-MA-083',
     }),
     row('SG-MT-076', 'Matriz de riesgos y oportunidades del sistema', 'MT', 'SG', 'VIGENTE', {
       'VERSIÓN': '4', 'FECHA DE VIGENCIA': '2026-05-18',
@@ -79,7 +80,7 @@ const DEMO_DOCUMENTS = (() => {
       'CONTROL DE CAMBIOS': '2026-04-06 · v3 → v4 · Se agrega la evaluación anual de proveedores.',
     }),
     row('COM-PR-068-AN01', 'Anexo 1. Flujograma de compras', 'PR', 'COM', 'VIGENTE', {
-      'VERSIÓN': '4', 'FECHA DE VIGENCIA': '2026-04-06', 'DOCUMENTO PRINCIPAL': 'COM-PR-068',
+      'VERSIÓN': '1', 'FECHA DE VIGENCIA': '2026-04-06', 'DOCUMENTO PRINCIPAL': 'COM-PR-068',
       'CARGO QUE ELABORA': 'Coordinador de compras', 'CARGO QUE APRUEBA': 'Director administrativo',
     }),
     // Variante por empresa: mismo código, una fila por empresa
