@@ -40,6 +40,8 @@
   --color-advertencia-bg:  #FBEDD8;
   --color-info:            #1565C0;
   --color-info-bg:         #E3F2FD;
+  --color-anulado:         #7A1F2B;
+  --color-anulado-bg:      #F3DEE1;
 
   /* --- Tipografía --- */
   --fuente-principal: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -431,6 +433,20 @@ button { cursor: pointer; }
 ================================================================ */
 .seccion--tabla { padding: 0; overflow: hidden; }
 
+/* Pista de scroll horizontal — solo visible en anchos donde la tabla
+   puede desbordar su contenedor (por debajo del breakpoint de escritorio) */
+.tabla__pista-scroll {
+  display: none;
+  padding: var(--espacio-sm) var(--espacio-md) 0;
+  font-size: var(--tamaño-xs);
+  color: #8a95a3;
+  text-align: right;
+}
+
+@media (max-width: 1023px) {
+  .tabla__pista-scroll { display: block; }
+}
+
 .tabla-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -490,6 +506,8 @@ button { cursor: pointer; }
   line-height: var(--altura-linea-ajustada);
 }
 
+.tabla__td--codigo { white-space: nowrap; }
+
 .tabla__acciones {
   display: flex;
   gap: var(--espacio-xs);
@@ -504,10 +522,12 @@ button { cursor: pointer; }
   font-size: var(--tamaño-xs);
   font-weight: var(--peso-semi);
 }
-.badge-estado--vigente  { background: var(--color-exito-bg);       color: var(--color-exito); }
-.badge-estado--obsoleto { background: var(--color-error-bg);       color: var(--color-error); }
-.badge-estado--revision { background: var(--color-advertencia-bg); color: var(--color-advertencia); }
-.badge-estado--neutro   { background: var(--color-superficie-alt); color: #6b7585; }
+.badge-estado--vigente        { background: var(--color-exito-bg);       color: var(--color-exito); }
+.badge-estado--obsoleto       { background: var(--color-error-bg);       color: var(--color-error); }
+.badge-estado--revision       { background: var(--color-advertencia-bg); color: var(--color-advertencia); }
+.badge-estado--desactualizado { background: var(--color-superficie-alt); color: #6b7585; }
+.badge-estado--anulado        { background: var(--color-anulado-bg);     color: var(--color-anulado); }
+.badge-estado--neutro         { background: var(--color-superficie-alt); color: #6b7585; }
 
 /* --- Estados de la tabla --- */
 .tabla__fila-estado { background: transparent !important; }
@@ -587,6 +607,13 @@ button { cursor: pointer; }
   color: var(--color-secundario);
 }
 .btn--secundario:hover { border-color: var(--color-primario); color: var(--color-primario); background: var(--color-primario-light); }
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  opacity: 0.45;
+  cursor: not-allowed;
+  pointer-events: none;
+}
 
 
 /* ================================================================

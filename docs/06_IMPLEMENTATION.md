@@ -24,9 +24,10 @@
 
 ## Fase 4 — Responsive y estados de tabla
 
-- Breakpoints (móvil / tablet / escritorio).
-- Estados de tabla: cargando / sin resultados / sin datos.
-- Validación mínima: probado visualmente en al menos 3 anchos de pantalla.
+- [x] Breakpoints (móvil 375px / tablet 768px / escritorio 1280px), tabla con scroll horizontal propio (`.tabla-wrapper`) y pista visual "Desliza para ver más columnas →" (solo visible por debajo de 1024px).
+- [x] Estados de tabla: cargando (skeleton) / sin resultados / sin datos — probados forzando cada estado.
+- [x] Validación: QA + capturas de pantalla en los 3 anchos — 0 desbordamiento horizontal del body en ninguno, panel de detalle a pantalla completa en móvil, tabla y barra de búsqueda se adaptan correctamente.
+- [x] **Bug encontrado y corregido durante la validación:** la columna Código no tenía `white-space: nowrap` en las celdas (`<td>`, solo lo tenía el `<th>`), causando que códigos como "PR-COM-001" se partieran en 3 líneas al angostarse la columna en móvil. Corregido en `styles.css`.
 
 ## Fase 5 — Integración real con Power Automate
 
@@ -36,5 +37,5 @@
 ## Fase 6 — Cierre
 
 - QA final y revisión de accesibilidad.
-- Ciclo de aprendizaje (lecciones aprendidas) — ver `IDENTIDAD.md` §4.
-- Propuesta de actualización de `INDICE.md` temático (Formularios_Web), con aprobación explícita antes de escribir.
+- Ciclo de aprendizaje (lecciones aprendidas) — ver [[IDENTIDAD|IDENTIDAD.md]] §4.
+- Propuesta de actualización de [[Inventarios/INVENTARIO_Web|INVENTARIO_Web.md]] temático (Formularios_Web), con aprobación explícita antes de escribir.

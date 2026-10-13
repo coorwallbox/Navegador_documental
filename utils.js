@@ -113,7 +113,54 @@ const Utils = (() => {
 
 
   /* ==============================================================
-     3. FORMATEO
+     3. CONFIGURACIÓN DE ESTADOS DE DOCUMENTOS
+     Única fuente de verdad para los estados válidos, su color de
+     badge y la regla de qué estados permiten descarga.
+  ============================================================== */
+  const Status = {
+
+    VIGENTE:         'Vigente',
+    OBSOLETO:        'Obsoleto',
+    EN_REVISION:     'En revisión',
+    DESACTUALIZADO:  'Desactualizado',
+    ANULADO:         'Anulado',
+
+    /** Lista completa de estados disponibles, en el orden de uso esperado. */
+    ALL: ['Vigente', 'Obsoleto', 'En revisión', 'Desactualizado', 'Anulado'],
+
+    /** Estados que habilitan el botón de descarga. Solo "Vigente" por ahora. */
+    DOWNLOADABLE: ['Vigente'],
+
+    /**
+     * Determina si un documento con este estado puede descargarse.
+     * @param {string} status
+     * @returns {boolean}
+     */
+    isDownloadable(status) {
+      const normalized = String(status).trim().toLowerCase();
+      return Status.DOWNLOADABLE.some((s) => s.toLowerCase() === normalized);
+    },
+
+    /**
+     * Determina la clase CSS del badge de estado según su valor.
+     * @param {string} status
+     * @returns {string}
+     */
+    badgeClass(status) {
+      const normalized = String(status).toLowerCase();
+      if (normalized.includes('vigente'))        return 'badge-estado--vigente';
+      if (normalized.includes('desactualizado')) return 'badge-estado--desactualizado';
+      if (normalized.includes('obsoleto'))       return 'badge-estado--obsoleto';
+      if (normalized.includes('anulado'))        return 'badge-estado--anulado';
+      if (normalized.includes('revisión') || normalized.includes('revision')) return 'badge-estado--revision';
+      return 'badge-estado--neutro';
+    },
+
+  };
+
+
+  /* ==============================================================
+     4. FORMATEO
      Presentación visual de datos (fechas, texto).
   ============================================================== */
   const Format = {
@@ -140,7 +187,7 @@ const Utils = (() => {
 
 
   /* ==============================================================
-     4. PROCESAMIENTO JSON
+     5. PROCESAMIENTO JSON
      Normalización de la respuesta cruda (Excel de SharePoint /
      Power Automate) al modelo interno de documento.
   ============================================================== */
@@ -210,7 +257,7 @@ const Utils = (() => {
 
 
   /* ==============================================================
-     5. UTILIDADES DE TABLA
+     6. UTILIDADES DE TABLA
      Operaciones sobre el array de documentos en memoria.
   ============================================================== */
   const Table = {
@@ -247,7 +294,7 @@ const Utils = (() => {
 
 
   /* ==============================================================
-     6. FUNCIONES AUXILIARES GENERALES
+     7. FUNCIONES AUXILIARES GENERALES
   ============================================================== */
   const General = {
 
@@ -313,6 +360,6 @@ const Utils = (() => {
   /* ==============================================================
      API PÚBLICA DEL MÓDULO
   ============================================================== */
-  return { Loader, Toast, Format, Json, Table, General };
+  return { Loader, Toast, Status, Format, Json, Table, General };
 
 })();

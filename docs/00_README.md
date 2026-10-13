@@ -1,6 +1,17 @@
+---
+tecnologia: Web
+tipo: entregable
+proyecto: Consulta_Documental
+estado: pendiente
+estado_resumen: "Fase 5 pendiente (integración real con Power Automate)"
+stack: "HTML + CSS + JS vainilla"
+descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
+aliases: [Consulta_Documental]
+---
+
 # Consulta_Documental — README
 
-> Carpeta temática: `Formularios_Web/`.
+> Ubicación: `Entregables/Web/` (entregable).
 > Última revisión: 2026-09-01.
 
 ## Propósito
@@ -9,7 +20,7 @@ Formulario web de búsqueda documental que permite consultar documentos mediante
 
 ## Contexto
 
-Referencia de arquitectura: `Cotizaciones_Wallbox` (mismo tema `Formularios_Web`) — patrón `App`/`Utils`, estado centralizado, modo demo, integración con Excel en SharePoint vía Power Automate. El código original de esa referencia no se modifica; esta es una solución nueva en carpeta propia.
+Referencia de arquitectura: [[Cotizaciones_Wallbox]] (mismo tema `Formularios_Web`) — patrón `App`/`Utils`, estado centralizado, modo demo, integración con Excel en SharePoint vía Power Automate. El código original de esa referencia no se modifica; esta es una solución nueva en carpeta propia.
 
 ## Origen de datos
 
@@ -66,6 +77,20 @@ Consulta_Documental/
 - Estados de tabla: sin datos / cargando / sin resultados.
 - Design tokens CSS (variables de color, tipografía, espaciado) y estructura de `styles.css` por secciones.
 
+## Configuración de estados de documentos
+
+Los 5 estados válidos (`Utils.Status` en `utils.js`, única fuente de verdad):
+
+| Estado | Color de badge | ¿Permite descarga? |
+|---|---|---|
+| Vigente | Verde | Sí |
+| Obsoleto | Rojo | No |
+| En revisión | Ámbar | No |
+| Desactualizado | Gris | No |
+| Anulado | Rojo oscuro | No |
+
+Solo los documentos en estado **Vigente** pueden descargarse. Para el resto, el botón "Descargar" (en la fila y en el panel de detalle) queda **deshabilitado** (visible, atenuado, con tooltip explicando el motivo) en vez de ocultarse — mantiene la fila consistente. La regla vive en `Utils.Status.isDownloadable()` y se valida también dentro de `_handleDownload` como guarda defensiva.
+
 ## Diferencias frente a la referencia
 
 - Filtro opcional (`process`) reemplaza al selector de actor/instalador de Wallbox.
@@ -79,4 +104,4 @@ _(pendiente — se completa al cerrar el ciclo de aprendizaje del proyecto, con 
 
 ## Documentación relacionada
 
-Ver `01_INDEX.md` para el mapa completo de la carpeta `docs/`.
+Ver [[Entregables/Web/Consulta_Documental/docs/01_INDEX|01_INDEX.md]] para el mapa completo de la carpeta `docs/`.

@@ -70,11 +70,11 @@ const App = (() => {
   ============================================================ */
   const DEMO_DOCUMENTS = [
     { 'Código': 'PR-COM-001', 'Nombre del documento': 'Procedimiento de compras nacionales', 'Tipo': 'Procedimiento', 'Proceso': 'Compras', 'Versión': '3', 'Fecha de emisión': '2025-02-10', 'Fecha de aprobación': '2025-02-18', 'Responsable': 'Ana Martínez', 'Estado': 'Vigente', 'Ubicación': '#demo/PR-COM-001.pdf', 'Usuarios o áreas aplicables': 'Compras, Almacén', 'Tiempo de retención': '5 años' },
-    { 'Código': 'IN-COM-004', 'Nombre del documento': 'Instructivo de selección de proveedores', 'Tipo': 'Instructivo', 'Proceso': 'Compras', 'Versión': '2', 'Fecha de emisión': '2024-11-05', 'Fecha de aprobación': '2024-11-12', 'Responsable': 'Ana Martínez', 'Estado': 'Vigente', 'Ubicación': '#demo/IN-COM-004.pdf', 'Usuarios o áreas aplicables': 'Compras', 'Tiempo de retención': '3 años' },
+    { 'Código': 'IN-COM-004', 'Nombre del documento': 'Instructivo de selección de proveedores', 'Tipo': 'Instructivo', 'Proceso': 'Compras', 'Versión': '2', 'Fecha de emisión': '2024-11-05', 'Fecha de aprobación': '2024-11-12', 'Responsable': 'Ana Martínez', 'Estado': 'Desactualizado', 'Ubicación': '#demo/IN-COM-004.pdf', 'Usuarios o áreas aplicables': 'Compras', 'Tiempo de retención': '3 años' },
     { 'Código': 'FO-CAL-012', 'Nombre del documento': 'Formato de inspección de calidad', 'Tipo': 'Formato', 'Proceso': 'Calidad', 'Versión': '5', 'Fecha de emisión': '2025-06-01', 'Fecha de aprobación': '2025-06-08', 'Responsable': 'Carlos Rojas', 'Estado': 'Vigente', 'Ubicación': '#demo/FO-CAL-012.pdf', 'Usuarios o áreas aplicables': 'Calidad, Producción', 'Tiempo de retención': '10 años' },
     { 'Código': 'PR-CAL-002', 'Nombre del documento': 'Procedimiento de no conformidades', 'Tipo': 'Procedimiento', 'Proceso': 'Calidad', 'Versión': '4', 'Fecha de emisión': '2024-09-14', 'Fecha de aprobación': '2024-09-20', 'Responsable': 'Carlos Rojas', 'Estado': 'En revisión', 'Ubicación': '#demo/PR-CAL-002.pdf', 'Usuarios o áreas aplicables': 'Calidad', 'Tiempo de retención': '10 años' },
     { 'Código': 'MA-CAL-001', 'Nombre del documento': 'Manual de gestión de calidad', 'Tipo': 'Manual', 'Proceso': 'Calidad', 'Versión': '7', 'Fecha de emisión': '2023-01-20', 'Fecha de aprobación': '2023-02-01', 'Responsable': 'Carlos Rojas', 'Estado': 'Vigente', 'Ubicación': '#demo/MA-CAL-001.pdf', 'Usuarios o áreas aplicables': 'Toda la organización', 'Tiempo de retención': 'Permanente' },
-    { 'Código': 'PO-RRHH-001', 'Nombre del documento': 'Política de vinculación de personal', 'Tipo': 'Política', 'Proceso': 'Recursos Humanos', 'Versión': '2', 'Fecha de emisión': '2024-03-11', 'Fecha de aprobación': '2024-03-15', 'Responsable': 'Laura Gómez', 'Estado': 'Vigente', 'Ubicación': '#demo/PO-RRHH-001.pdf', 'Usuarios o áreas aplicables': 'Recursos Humanos', 'Tiempo de retención': '5 años' },
+    { 'Código': 'PO-RRHH-001', 'Nombre del documento': 'Política de vinculación de personal', 'Tipo': 'Política', 'Proceso': 'Recursos Humanos', 'Versión': '2', 'Fecha de emisión': '2024-03-11', 'Fecha de aprobación': '2024-03-15', 'Responsable': 'Laura Gómez', 'Estado': 'Anulado', 'Ubicación': '#demo/PO-RRHH-001.pdf', 'Usuarios o áreas aplicables': 'Recursos Humanos', 'Tiempo de retención': '5 años' },
     { 'Código': 'FO-RRHH-018', 'Nombre del documento': 'Formato de evaluación de desempeño', 'Tipo': 'Formato', 'Proceso': 'Recursos Humanos', 'Versión': '3', 'Fecha de emisión': '2025-01-08', 'Fecha de aprobación': '2025-01-15', 'Responsable': 'Laura Gómez', 'Estado': 'Vigente', 'Ubicación': '#demo/FO-RRHH-018.pdf', 'Usuarios o áreas aplicables': 'Toda la organización', 'Tiempo de retención': '5 años' },
     { 'Código': 'IN-PROD-007', 'Nombre del documento': 'Instructivo de operación de línea de ensamble', 'Tipo': 'Instructivo', 'Proceso': 'Producción', 'Versión': '6', 'Fecha de emisión': '2025-04-22', 'Fecha de aprobación': '2025-04-29', 'Responsable': 'Jorge Peña', 'Estado': 'Vigente', 'Ubicación': '#demo/IN-PROD-007.pdf', 'Usuarios o áreas aplicables': 'Producción', 'Tiempo de retención': '3 años' },
     { 'Código': 'PR-PROD-003', 'Nombre del documento': 'Procedimiento de mantenimiento preventivo', 'Tipo': 'Procedimiento', 'Proceso': 'Producción', 'Versión': '2', 'Fecha de emisión': '2024-07-02', 'Fecha de aprobación': '2024-07-10', 'Responsable': 'Jorge Peña', 'Estado': 'Obsoleto', 'Ubicación': '#demo/PR-PROD-003.pdf', 'Usuarios o áreas aplicables': 'Producción, Mantenimiento', 'Tiempo de retención': '3 años' },
@@ -299,7 +299,11 @@ const App = (() => {
     row.dataset.id = doc._id;
 
     const escape = Utils.General.escapeHTML;
-    const statusClass = _statusClass(doc.status);
+    const statusClass  = Utils.Status.badgeClass(doc.status);
+    const canDownload  = Utils.Status.isDownloadable(doc.status);
+    const downloadAttrs = canDownload
+      ? ''
+      : `disabled aria-disabled="true" title="Solo se pueden descargar documentos en estado &quot;${Utils.Status.VIGENTE}&quot;."`;
 
     row.innerHTML = `
       <td class="tabla__td tabla__td--codigo">${escape(doc.code)}</td>
@@ -314,7 +318,7 @@ const App = (() => {
           <button type="button" class="btn btn--secundario btn--sm" data-action="detail" data-id="${doc._id}">
             Ver más
           </button>
-          <button type="button" class="btn btn--primario btn--sm" data-action="download" data-id="${doc._id}">
+          <button type="button" class="btn btn--primario btn--sm" data-action="download" data-id="${doc._id}" ${downloadAttrs}>
             Descargar
           </button>
         </div>
@@ -322,15 +326,6 @@ const App = (() => {
     `;
 
     return row;
-  }
-
-  /** Determina la clase CSS del badge de estado según su valor. @private */
-  function _statusClass(status) {
-    const normalized = String(status).toLowerCase();
-    if (normalized.includes('vigente'))   return 'badge-estado--vigente';
-    if (normalized.includes('obsoleto'))  return 'badge-estado--obsoleto';
-    if (normalized.includes('revisión') || normalized.includes('revision')) return 'badge-estado--revision';
-    return 'badge-estado--neutro';
   }
 
   /**
@@ -361,6 +356,15 @@ const App = (() => {
    */
   function _handleDownload(doc) {
     if (!doc) return;
+
+    // Guarda defensiva: el botón ya está deshabilitado para estos casos,
+    // pero se valida también aquí por si se dispara la acción por otra vía.
+    if (!Utils.Status.isDownloadable(doc.status)) {
+      Utils.Toast.warning(
+        `Solo se pueden descargar documentos en estado "${Utils.Status.VIGENTE}". "${doc.documentName}" está en estado "${doc.status}".`
+      );
+      return;
+    }
 
     if (!doc.location) {
       Utils.Toast.warning(`"${doc.documentName}" no tiene una ubicación de descarga configurada.`);
@@ -404,13 +408,20 @@ const App = (() => {
     DOM.detailType.textContent        = doc.type || '—';
     DOM.detailProcess.textContent     = doc.process || '—';
     DOM.detailStatus.textContent      = doc.status || '—';
-    DOM.detailStatus.className        = `badge-estado ${_statusClass(doc.status)}`;
+    DOM.detailStatus.className        = `badge-estado ${Utils.Status.badgeClass(doc.status)}`;
     DOM.detailVersion.textContent     = doc.version || '—';
     DOM.detailIssueDate.textContent   = Utils.Format.dateLong(doc.issueDate) || '—';
     DOM.detailApprovalDate.textContent = Utils.Format.dateLong(doc.approvalDate) || '—';
     DOM.detailOwner.textContent       = doc.owner || '—';
     DOM.detailApplicable.textContent  = doc.applicableAreas || '—';
     DOM.detailRetention.textContent   = doc.retentionTime || '—';
+
+    const canDownload = Utils.Status.isDownloadable(doc.status);
+    DOM.btnDescargarPanel.disabled = !canDownload;
+    DOM.btnDescargarPanel.setAttribute('aria-disabled', String(!canDownload));
+    DOM.btnDescargarPanel.title = canDownload
+      ? ''
+      : `Solo se pueden descargar documentos en estado "${Utils.Status.VIGENTE}".`;
 
     DOM.detailOverlay.classList.add('activo');
     DOM.detailOverlay.setAttribute('aria-hidden', 'false');
