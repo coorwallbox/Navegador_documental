@@ -40,8 +40,8 @@
   --color-advertencia-bg:  #FBEDD8;
   --color-info:            #1565C0;
   --color-info-bg:         #E3F2FD;
-  --color-anulado:         #7A1F2B;
-  --color-anulado-bg:      #F3DEE1;
+  --color-eliminado:       #7A1F2B;
+  --color-eliminado-bg:    #F3DEE1;
 
   /* --- Tipografía --- */
   --fuente-principal: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
@@ -544,8 +544,7 @@ button { cursor: pointer; }
 .badge-estado--vigente        { background: var(--color-exito-bg);       color: var(--color-exito); }
 .badge-estado--obsoleto       { background: var(--color-error-bg);       color: var(--color-error); }
 .badge-estado--revision       { background: var(--color-advertencia-bg); color: var(--color-advertencia); }
-.badge-estado--desactualizado { background: var(--color-superficie-alt); color: #6b7585; }
-.badge-estado--anulado        { background: var(--color-anulado-bg);     color: var(--color-anulado); }
+.badge-estado--eliminado      { background: var(--color-eliminado-bg);   color: var(--color-eliminado); }
 .badge-estado--neutro         { background: var(--color-superficie-alt); color: #6b7585; }
 
 /* --- Estados de la tabla --- */

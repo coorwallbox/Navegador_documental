@@ -12,7 +12,8 @@
 - Fase 4 (Responsive y estados de tabla): **completa**.
 - **Cambio de alcance (2026-10-13, aprobado):** alineación con la estructura propuesta del listado maestro de documentos + logo de Los Coches. Fases nuevas 5–9; Power Automate pasa a la Fase 10 y el cierre a la 11 (ver `06_IMPLEMENTATION.md`).
 - Fase 5 (Logo y favicon): **completa**.
-- Fase 6 (Modelo de datos de la propuesta): pendiente de iniciar.
+- Fase 6 (Modelo de datos de la propuesta): **completa**.
+- Fase 7 (Filtros, búsqueda y enlace por URL): pendiente de iniciar.
 
 ## Validación
 
@@ -30,6 +31,7 @@
 - **Bug encontrado y corregido:** columna Código sin `white-space: nowrap` en `<td>` — se partía en 3 líneas en móvil. Corregido en `styles.css`.
 
 - Fase 5 validada con QA headless servido por HTTP local (2026-10-13) en 375/768/1280 px: logotipo visible de 186 px (mínimo 180, lámina 09), proporción conservada, título fuera de la caja del SVG y sin recorte, favicon SVG responde 200, 0 desbordamiento horizontal, 0 errores de consola y 0 respuestas ≥ 400. Revisión visual de las capturas a 375 y 1280 px. Rótulos de versión actualizados (`v0.2`, pie sin número de fase).
+- Fase 6 validada con QA headless (2026-10-13): 20/20 comprobaciones del modelo (20 columnas, tolerancia de encabezados y fechas, códigos `SIGLA-TIPO-NNN`, variantes por código+empresa, anexos, bandas, cobertura de tipos y estados, badges, regla de descarga con EN REVISIÓN bloqueado), 0 errores de consola, 0 referencias a estados retirados, 0 coincidencias de códigos demo con el listado real. Regresión de la Fase 5 OK.
 
 ## Bloqueos
 
@@ -37,4 +39,4 @@
 
 ## Siguiente paso
 
-Iniciar Fase 6: modelo de datos de la propuesta — `Utils.Status` con 4 estados, `catalog.js`, mapeo de las 20 columnas en `Utils.Json` y datos demo nuevos en formato SIGLA-TIPO-NNN.
+Iniciar Fase 7: filtros (proceso con nombre y agrupado por banda, banda, tipo, empresa con TODAS, estado), búsqueda por nombre y código, «Limpiar filtros» y parámetros de URL (`?proceso=TAL`).

@@ -2,7 +2,7 @@
    CONSULTA DOCUMENTAL
    main.js · Fase 1 · 2026
    Módulo principal de la aplicación.
-   Depende de: utils.js (debe cargarse antes en el HTML)
+   Depende de: catalog.js, utils.js y demo-data.js (deben cargarse antes en el HTML)
 
    Flujo Fase 1:
      1. DOMContentLoaded → App.init()
@@ -64,27 +64,6 @@ const App = (() => {
 
 
   /* ============================================================
-     DATOS DE PRUEBA (MODO DEMO)
-     Simulan la respuesta del Excel en SharePoint, con los nombres
-     de columna reales tal como los normaliza Utils.Json.
-  ============================================================ */
-  const DEMO_DOCUMENTS = [
-    { 'Código': 'PR-COM-001', 'Nombre del documento': 'Procedimiento de compras nacionales', 'Tipo': 'Procedimiento', 'Proceso': 'Compras', 'Versión': '3', 'Fecha de emisión': '2025-02-10', 'Fecha de aprobación': '2025-02-18', 'Responsable': 'Ana Martínez', 'Estado': 'Vigente', 'Ubicación': '#demo/PR-COM-001.pdf', 'Usuarios o áreas aplicables': 'Compras, Almacén', 'Tiempo de retención': '5 años' },
-    { 'Código': 'IN-COM-004', 'Nombre del documento': 'Instructivo de selección de proveedores', 'Tipo': 'Instructivo', 'Proceso': 'Compras', 'Versión': '2', 'Fecha de emisión': '2024-11-05', 'Fecha de aprobación': '2024-11-12', 'Responsable': 'Ana Martínez', 'Estado': 'Desactualizado', 'Ubicación': '#demo/IN-COM-004.pdf', 'Usuarios o áreas aplicables': 'Compras', 'Tiempo de retención': '3 años' },
-    { 'Código': 'FO-CAL-012', 'Nombre del documento': 'Formato de inspección de calidad', 'Tipo': 'Formato', 'Proceso': 'Calidad', 'Versión': '5', 'Fecha de emisión': '2025-06-01', 'Fecha de aprobación': '2025-06-08', 'Responsable': 'Carlos Rojas', 'Estado': 'Vigente', 'Ubicación': '#demo/FO-CAL-012.pdf', 'Usuarios o áreas aplicables': 'Calidad, Producción', 'Tiempo de retención': '10 años' },
-    { 'Código': 'PR-CAL-002', 'Nombre del documento': 'Procedimiento de no conformidades', 'Tipo': 'Procedimiento', 'Proceso': 'Calidad', 'Versión': '4', 'Fecha de emisión': '2024-09-14', 'Fecha de aprobación': '2024-09-20', 'Responsable': 'Carlos Rojas', 'Estado': 'En revisión', 'Ubicación': '#demo/PR-CAL-002.pdf', 'Usuarios o áreas aplicables': 'Calidad', 'Tiempo de retención': '10 años' },
-    { 'Código': 'MA-CAL-001', 'Nombre del documento': 'Manual de gestión de calidad', 'Tipo': 'Manual', 'Proceso': 'Calidad', 'Versión': '7', 'Fecha de emisión': '2023-01-20', 'Fecha de aprobación': '2023-02-01', 'Responsable': 'Carlos Rojas', 'Estado': 'Vigente', 'Ubicación': '#demo/MA-CAL-001.pdf', 'Usuarios o áreas aplicables': 'Toda la organización', 'Tiempo de retención': 'Permanente' },
-    { 'Código': 'PO-RRHH-001', 'Nombre del documento': 'Política de vinculación de personal', 'Tipo': 'Política', 'Proceso': 'Recursos Humanos', 'Versión': '2', 'Fecha de emisión': '2024-03-11', 'Fecha de aprobación': '2024-03-15', 'Responsable': 'Laura Gómez', 'Estado': 'Anulado', 'Ubicación': '#demo/PO-RRHH-001.pdf', 'Usuarios o áreas aplicables': 'Recursos Humanos', 'Tiempo de retención': '5 años' },
-    { 'Código': 'FO-RRHH-018', 'Nombre del documento': 'Formato de evaluación de desempeño', 'Tipo': 'Formato', 'Proceso': 'Recursos Humanos', 'Versión': '3', 'Fecha de emisión': '2025-01-08', 'Fecha de aprobación': '2025-01-15', 'Responsable': 'Laura Gómez', 'Estado': 'Vigente', 'Ubicación': '#demo/FO-RRHH-018.pdf', 'Usuarios o áreas aplicables': 'Toda la organización', 'Tiempo de retención': '5 años' },
-    { 'Código': 'IN-PROD-007', 'Nombre del documento': 'Instructivo de operación de línea de ensamble', 'Tipo': 'Instructivo', 'Proceso': 'Producción', 'Versión': '6', 'Fecha de emisión': '2025-04-22', 'Fecha de aprobación': '2025-04-29', 'Responsable': 'Jorge Peña', 'Estado': 'Vigente', 'Ubicación': '#demo/IN-PROD-007.pdf', 'Usuarios o áreas aplicables': 'Producción', 'Tiempo de retención': '3 años' },
-    { 'Código': 'PR-PROD-003', 'Nombre del documento': 'Procedimiento de mantenimiento preventivo', 'Tipo': 'Procedimiento', 'Proceso': 'Producción', 'Versión': '2', 'Fecha de emisión': '2024-07-02', 'Fecha de aprobación': '2024-07-10', 'Responsable': 'Jorge Peña', 'Estado': 'Obsoleto', 'Ubicación': '#demo/PR-PROD-003.pdf', 'Usuarios o áreas aplicables': 'Producción, Mantenimiento', 'Tiempo de retención': '3 años' },
-    { 'Código': 'FO-SST-005', 'Nombre del documento': 'Formato de inspección de seguridad', 'Tipo': 'Formato', 'Proceso': 'Seguridad y Salud en el Trabajo', 'Versión': '4', 'Fecha de emisión': '2025-05-19', 'Fecha de aprobación': '2025-05-26', 'Responsable': 'Diana Torres', 'Estado': 'Vigente', 'Ubicación': '#demo/FO-SST-005.pdf', 'Usuarios o áreas aplicables': 'Toda la organización', 'Tiempo de retención': '20 años' },
-    { 'Código': 'PR-SST-002', 'Nombre del documento': 'Procedimiento de reporte de incidentes', 'Tipo': 'Procedimiento', 'Proceso': 'Seguridad y Salud en el Trabajo', 'Versión': '3', 'Fecha de emisión': '2024-12-01', 'Fecha de aprobación': '2024-12-09', 'Responsable': 'Diana Torres', 'Estado': 'Vigente', 'Ubicación': '#demo/PR-SST-002.pdf', 'Usuarios o áreas aplicables': 'Toda la organización', 'Tiempo de retención': '20 años' },
-    { 'Código': 'MA-SST-001', 'Nombre del documento': 'Manual del sistema de gestión SST', 'Tipo': 'Manual', 'Proceso': 'Seguridad y Salud en el Trabajo', 'Versión': '5', 'Fecha de emisión': '2023-08-14', 'Fecha de aprobación': '2023-08-21', 'Responsable': 'Diana Torres', 'Estado': 'Vigente', 'Ubicación': '#demo/MA-SST-001.pdf', 'Usuarios o áreas aplicables': 'Toda la organización', 'Tiempo de retención': 'Permanente' },
-  ];
-
-
-  /* ============================================================
      1. INICIALIZACIÓN
   ============================================================ */
 
@@ -118,11 +97,11 @@ const App = (() => {
     DOM.detailProcess        = document.getElementById('detalle-process');
     DOM.detailStatus         = document.getElementById('detalle-status');
     DOM.detailVersion        = document.getElementById('detalle-version');
-    DOM.detailIssueDate      = document.getElementById('detalle-issueDate');
-    DOM.detailApprovalDate   = document.getElementById('detalle-approvalDate');
-    DOM.detailOwner          = document.getElementById('detalle-owner');
-    DOM.detailApplicable     = document.getElementById('detalle-applicableAreas');
-    DOM.detailRetention      = document.getElementById('detalle-retentionTime');
+    DOM.detailEffectiveDate  = document.getElementById('detalle-effectiveDate');
+    DOM.detailCompany        = document.getElementById('detalle-company');
+    DOM.detailPreparedBy     = document.getElementById('detalle-preparedBy');
+    DOM.detailApprovedBy     = document.getElementById('detalle-approvedBy');
+    DOM.detailRetention      = document.getElementById('detalle-retention');
   }
 
   /** Registra todos los event listeners de la aplicación. @private */
@@ -166,7 +145,7 @@ const App = (() => {
 
       if (CONFIG.MODO_DEMO || CONFIG.URL_DOCUMENTS.startsWith('[')) {
         await Utils.General.wait(600);
-        raw = DEMO_DOCUMENTS;
+        raw = DEMO_DOCUMENTS;  // demo-data.js
         Utils.General.log('Documentos demo cargados:', raw.length);
       } else {
         // Integración real — se implementa en la Fase 5.
@@ -303,15 +282,15 @@ const App = (() => {
     const canDownload  = Utils.Status.isDownloadable(doc.status);
     const downloadAttrs = canDownload
       ? ''
-      : `disabled aria-disabled="true" title="Solo se pueden descargar documentos en estado &quot;${Utils.Status.VIGENTE}&quot;."`;
+      : `disabled aria-disabled="true" title="Solo se pueden descargar documentos en estado &quot;${Utils.Status.label(Utils.Status.VIGENTE)}&quot;."`;
 
     row.innerHTML = `
       <td class="tabla__td tabla__td--codigo">${escape(doc.code)}</td>
       <td class="tabla__td tabla__td--nombre">${escape(doc.documentName)}</td>
-      <td class="tabla__td tabla__td--tipo">${escape(doc.type)}</td>
+      <td class="tabla__td tabla__td--tipo">${escape(Catalog.typeName(doc.type))}</td>
       <td class="tabla__td tabla__td--proceso">${escape(doc.process)}</td>
       <td class="tabla__td tabla__td--estado">
-        <span class="badge-estado ${statusClass}">${escape(doc.status)}</span>
+        <span class="badge-estado ${statusClass}">${escape(Utils.Status.label(doc.status))}</span>
       </td>
       <td class="tabla__td tabla__td--acciones">
         <div class="tabla__acciones">
@@ -361,7 +340,7 @@ const App = (() => {
     // pero se valida también aquí por si se dispara la acción por otra vía.
     if (!Utils.Status.isDownloadable(doc.status)) {
       Utils.Toast.warning(
-        `Solo se pueden descargar documentos en estado "${Utils.Status.VIGENTE}". "${doc.documentName}" está en estado "${doc.status}".`
+        `Solo se pueden descargar documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}". "${doc.documentName}" está en estado "${Utils.Status.label(doc.status)}".`
       );
       return;
     }
@@ -405,23 +384,24 @@ const App = (() => {
 
     DOM.detailTitulo.textContent      = doc.documentName;
     DOM.detailCodigo.textContent      = doc.code;
-    DOM.detailType.textContent        = doc.type || '—';
+    DOM.detailType.textContent        = Catalog.typeName(doc.type) || '—';
     DOM.detailProcess.textContent     = doc.process || '—';
-    DOM.detailStatus.textContent      = doc.status || '—';
+    DOM.detailStatus.textContent      = Utils.Status.label(doc.status) || '—';
     DOM.detailStatus.className        = `badge-estado ${Utils.Status.badgeClass(doc.status)}`;
     DOM.detailVersion.textContent     = doc.version || '—';
-    DOM.detailIssueDate.textContent   = Utils.Format.dateLong(doc.issueDate) || '—';
-    DOM.detailApprovalDate.textContent = Utils.Format.dateLong(doc.approvalDate) || '—';
-    DOM.detailOwner.textContent       = doc.owner || '—';
-    DOM.detailApplicable.textContent  = doc.applicableAreas || '—';
-    DOM.detailRetention.textContent   = doc.retentionTime || '—';
+    DOM.detailEffectiveDate.textContent = Utils.Format.dateLong(doc.effectiveDate) || '—';
+    DOM.detailCompany.textContent     = doc.company || '—';
+    DOM.detailPreparedBy.textContent  = doc.preparedBy || '—';
+    DOM.detailApprovedBy.textContent  = doc.approvedBy || '—';
+    DOM.detailRetention.textContent   =
+      Utils.Format.retention(doc.retentionManagementYears, doc.retentionCentralYears) || '—';
 
     const canDownload = Utils.Status.isDownloadable(doc.status);
     DOM.btnDescargarPanel.disabled = !canDownload;
     DOM.btnDescargarPanel.setAttribute('aria-disabled', String(!canDownload));
     DOM.btnDescargarPanel.title = canDownload
       ? ''
-      : `Solo se pueden descargar documentos en estado "${Utils.Status.VIGENTE}".`;
+      : `Solo se pueden descargar documentos en estado "${Utils.Status.label(Utils.Status.VIGENTE)}".`;
 
     DOM.detailOverlay.classList.add('activo');
     DOM.detailOverlay.setAttribute('aria-hidden', 'false');

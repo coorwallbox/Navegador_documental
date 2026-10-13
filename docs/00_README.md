@@ -3,7 +3,7 @@ tecnologia: Web
 tipo: entregable
 proyecto: Consulta_Documental
 estado: pendiente
-estado_resumen: "Fase 6 pendiente (modelo de datos de la propuesta del listado maestro)"
+estado_resumen: "Fase 7 pendiente (filtros, búsqueda y enlace por URL)"
 stack: "HTML + CSS + JS vainilla"
 descripcion: "Formulario de búsqueda documental (palabra clave + filtro por proceso) con tabla de resultados, panel de detalle deslizante y descarga condicionada al estado del documento"
 aliases: [Consulta_Documental]
@@ -12,7 +12,7 @@ aliases: [Consulta_Documental]
 # Consulta_Documental — README
 
 > Ubicación: `Entregables/Web/` (entregable).
-> Última revisión: 2026-09-01.
+> Última revisión: 2026-10-13.
 
 ## Propósito
 
@@ -24,22 +24,32 @@ Referencia de arquitectura: [[Cotizaciones_Wallbox]] (mismo tema `Formularios_We
 
 ## Origen de datos
 
-Excel almacenado en SharePoint, consultado a través de un flujo de Power Automate. Columnas:
+Excel almacenado en SharePoint, consultado a través de un flujo de Power Automate. Desde la Fase 6 el modelo sigue la **estructura propuesta del listado maestro de documentos** (20 columnas; `Utils.Json.COLUMNS` es el mapeo). Los encabezados se comparan sin distinguir mayúsculas, tildes ni espacios repetidos.
 
 | Columna Excel | Propiedad interna |
 |---|---|
-| Código | `code` |
-| Nombre del documento | `documentName` |
-| Tipo | `type` |
-| Proceso | `process` |
-| Versión | `version` |
-| Fecha de emisión | `issueDate` |
-| Fecha de aprobación | `approvalDate` |
-| Responsable | `owner` |
-| Estado | `status` |
-| Ubicación | `location` |
-| Usuarios o áreas aplicables | `applicableAreas` |
-| Tiempo de retención | `retentionTime` |
+| CÓDIGO | `code` |
+| NOMBRE DEL DOCUMENTO | `documentName` |
+| TIPO | `type` |
+| PROCESO (SIGLA) | `process` |
+| BANDA DEL MAPA | `band` |
+| VERSIÓN | `version` |
+| FECHA DE VIGENCIA | `effectiveDate` |
+| ESTADO | `status` |
+| FECHA LÍMITE DE REVISIÓN | `reviewDeadline` |
+| EMPRESA | `company` |
+| DOCUMENTO PRINCIPAL | `parentCode` |
+| UBICACIÓN | `location` |
+| RETENCIÓN ARCHIVO DE GESTIÓN (AÑOS) | `retentionManagementYears` |
+| RETENCIÓN ARCHIVO CENTRAL (AÑOS) | `retentionCentralYears` |
+| DISPOSICIÓN FINAL | `finalDisposition` |
+| FUNDAMENTO DE LA RETENCIÓN | `retentionBasis` |
+| CARGO QUE ELABORA | `preparedBy` |
+| CARGO QUE APRUEBA | `approvedBy` |
+| CONTROL DE CAMBIOS | `changeLog` |
+| OBSERVACIONES | `notes` |
+
+Reglas de normalización: código `SIGLA-TIPO-NNN` (anexos `-AN01`); clave del documento = código + empresa (las variantes comparten código); EMPRESA vacía = TODAS; BANDA DEL MAPA vacía se deduce de la sigla con `catalog.js`; fechas a ISO (acepta ISO, `DD/MM/YYYY` y número de serie de Excel).
 
 ## Estructura de archivos (prevista)
 
@@ -51,13 +61,15 @@ Consulta_Documental/
 │   ├── 06_IMPLEMENTATION.md
 │   └── 07_PROGRESO_RESUMEN.md
 ├── img/                  # logo en negativo y favicon (manual de marca Los Coches)
+├── catalog.js            # catálogos: tipos, bandas, procesos, empresas
+├── demo-data.js          # datos de ejemplo inventados (modo demo)
 ├── index.html
 ├── main.js
 ├── styles.css
 └── utils.js
 ```
 
-**Orden de carga obligatorio en `index.html`:** `utils.js` antes que `main.js` (patrón heredado de Wallbox: `App` depende de `Utils`).
+**Orden de carga obligatorio en `index.html`:** `catalog.js` → `utils.js` → `demo-data.js` → `main.js` (`Utils` usa `Catalog`; `App` depende de los tres).
 
 ## Funcionalidades principales (previstas)
 
@@ -80,17 +92,20 @@ Consulta_Documental/
 
 ## Configuración de estados de documentos
 
-Los 5 estados válidos (`Utils.Status` en `utils.js`, única fuente de verdad):
+Los 4 estados de la propuesta (`Utils.Status` en `utils.js`, única fuente de verdad; el dato va en mayúsculas y se muestra en minúsculas con `Utils.Status.label`):
 
 | Estado | Color de badge | ¿Permite descarga? |
 |---|---|---|
-| Vigente | Verde | Sí |
-| Obsoleto | Rojo | No |
-| En revisión | Ámbar | No |
-| Desactualizado | Gris | No |
-| Anulado | Rojo oscuro | No |
+| VIGENTE | Verde | Sí |
+| EN REVISIÓN | Ámbar | No (decisión 2026-10-13) |
+| OBSOLETO | Rojo | No |
+| ELIMINADO | Rojo oscuro | No |
 
-Solo los documentos en estado **Vigente** pueden descargarse. Para el resto, el botón "Descargar" (en la fila y en el panel de detalle) queda **deshabilitado** (visible, atenuado, con tooltip explicando el motivo) en vez de ocultarse — mantiene la fila consistente. La regla vive en `Utils.Status.isDownloadable()` y se valida también dentro de `_handleDownload` como guarda defensiva.
+EN REVISIÓN reemplaza a «Por revisar» y «Desactualizado» y lleva FECHA LÍMITE DE REVISIÓN. Solo los documentos **VIGENTE** pueden descargarse; para el resto el botón queda **deshabilitado** (visible, atenuado, con tooltip). La regla vive en `Utils.Status.isDownloadable()` y se valida también dentro de `_handleDownload` como guarda defensiva.
+
+## Catálogos
+
+`catalog.js` (objeto global `Catalog`) contiene los 10 tipos de documento, las bandas del mapa con sus grupos y siglas, los nombres de los procesos, las empresas y la disposición final. Está aparte para poder ajustarlo (la ubicación de SG y otros procesos está pendiente de aprobación) sin tocar el resto.
 
 ## Diferencias frente a la referencia
 

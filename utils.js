@@ -1,13 +1,16 @@
 /* ================================================================
    CONSULTA DOCUMENTAL
-   utils.js · Fase 1 · 2026
+   utils.js · Fase 1 · 2026 (modelo de datos: Fase 6)
    Módulo de utilidades reutilizables.
    Expone el objeto global Utils con los siguientes submódulos:
      · Loader  — overlay de carga global
      · Toast   — sistema de notificaciones
-     · Json    — parseo y normalización de respuestas
+     · Status  — los 4 estados de documento y la regla de descarga
+     · Format  — presentación de fechas y retención
+     · Json    — parseo y normalización de respuestas (20 columnas)
      · Table   — utilidades sobre el array de documentos
      · General — funciones auxiliares de propósito general
+   Depende de: catalog.js (debe cargarse antes en el HTML)
 ================================================================ */
 
 const Utils = (() => {
@@ -119,41 +122,59 @@ const Utils = (() => {
   ============================================================== */
   const Status = {
 
-    VIGENTE:         'Vigente',
-    OBSOLETO:        'Obsoleto',
-    EN_REVISION:     'En revisión',
-    DESACTUALIZADO:  'Desactualizado',
-    ANULADO:         'Anulado',
+    VIGENTE:     'VIGENTE',
+    EN_REVISION: 'EN REVISIÓN',
+    OBSOLETO:    'OBSOLETO',
+    ELIMINADO:   'ELIMINADO',
 
-    /** Lista completa de estados disponibles, en el orden de uso esperado. */
-    ALL: ['Vigente', 'Obsoleto', 'En revisión', 'Desactualizado', 'Anulado'],
+    /** Los 4 estados de la propuesta (sección 3.6), en orden de uso. */
+    ALL: ['VIGENTE', 'EN REVISIÓN', 'OBSOLETO', 'ELIMINADO'],
 
-    /** Estados que habilitan el botón de descarga. Solo "Vigente" por ahora. */
-    DOWNLOADABLE: ['Vigente'],
+    /** Estados que habilitan abrir/descargar. EN REVISIÓN no (decisión 2026-10-13). */
+    DOWNLOADABLE: ['VIGENTE'],
 
-    /**
-     * Determina si un documento con este estado puede descargarse.
-     * @param {string} status
-     * @returns {boolean}
-     */
-    isDownloadable(status) {
-      const normalized = String(status).trim().toLowerCase();
-      return Status.DOWNLOADABLE.some((s) => s.toLowerCase() === normalized);
+    /** Texto visible de cada estado (el dato se guarda en mayúsculas). */
+    LABELS: {
+      'VIGENTE':     'Vigente',
+      'EN REVISIÓN': 'En revisión',
+      'OBSOLETO':    'Obsoleto',
+      'ELIMINADO':   'Eliminado',
+    },
+
+    /** Clase CSS del badge de cada estado. */
+    BADGES: {
+      'VIGENTE':     'badge-estado--vigente',
+      'EN REVISIÓN': 'badge-estado--revision',
+      'OBSOLETO':    'badge-estado--obsoleto',
+      'ELIMINADO':   'badge-estado--eliminado',
     },
 
     /**
-     * Determina la clase CSS del badge de estado según su valor.
+     * Lleva un estado escrito con otra capitalización o sin tilde
+     * ("En revision") a su valor canónico. Si no lo reconoce, lo retorna limpio.
      * @param {string} status
      * @returns {string}
      */
+    normalize(status) {
+      const clean = String(status ?? '').trim();
+      const key = General.normalizeText(clean);
+      return Status.ALL.find((s) => General.normalizeText(s) === key) || clean;
+    },
+
+    /** Texto visible del estado. */
+    label(status) {
+      const canonical = Status.normalize(status);
+      return Status.LABELS[canonical] || canonical;
+    },
+
+    /** Determina si un documento con este estado puede abrirse/descargarse. */
+    isDownloadable(status) {
+      return Status.DOWNLOADABLE.includes(Status.normalize(status));
+    },
+
+    /** Clase CSS del badge de estado (neutro si el estado no es válido). */
     badgeClass(status) {
-      const normalized = String(status).toLowerCase();
-      if (normalized.includes('vigente'))        return 'badge-estado--vigente';
-      if (normalized.includes('desactualizado')) return 'badge-estado--desactualizado';
-      if (normalized.includes('obsoleto'))       return 'badge-estado--obsoleto';
-      if (normalized.includes('anulado'))        return 'badge-estado--anulado';
-      if (normalized.includes('revisión') || normalized.includes('revision')) return 'badge-estado--revision';
-      return 'badge-estado--neutro';
+      return Status.BADGES[Status.normalize(status)] || 'badge-estado--neutro';
     },
 
   };
@@ -183,6 +204,17 @@ const Utils = (() => {
       }
     },
 
+    /**
+     * Texto de retención a partir de los años en archivo de gestión y central.
+     * Ejemplo: ("2", "8") → "2 años en gestión + 8 en central"
+     */
+    retention(managementYears, centralYears) {
+      const parts = [];
+      if (managementYears) parts.push(`${managementYears} ${managementYears === '1' ? 'año' : 'años'} en gestión`);
+      if (centralYears) parts.push(`${centralYears} en central`);
+      return parts.join(' + ');
+    },
+
   };
 
 
@@ -204,22 +236,63 @@ const Utils = (() => {
     },
 
     /**
-     * Normaliza el array de documentos proveniente del Excel de SharePoint.
-     * Mapea las columnas del Excel a las propiedades internas del modelo.
-     *
-     * Columnas del Excel → Propiedades internas:
-     *   Código                       → code
-     *   Nombre del documento         → documentName
-     *   Tipo                         → type
-     *   Proceso                      → process
-     *   Versión                      → version
-     *   Fecha de emisión             → issueDate
-     *   Fecha de aprobación          → approvalDate
-     *   Responsable                  → owner
-     *   Estado                       → status
-     *   Ubicación                    → location
-     *   Usuarios o áreas aplicables  → applicableAreas
-     *   Tiempo de retención          → retentionTime
+     * Columnas del listado maestro propuesto (20 columnas)
+     * → propiedades internas del documento.
+     */
+    COLUMNS: {
+      'CÓDIGO':                              'code',
+      'NOMBRE DEL DOCUMENTO':                'documentName',
+      'TIPO':                                'type',
+      'PROCESO (SIGLA)':                     'process',
+      'BANDA DEL MAPA':                      'band',
+      'VERSIÓN':                             'version',
+      'FECHA DE VIGENCIA':                   'effectiveDate',
+      'ESTADO':                              'status',
+      'FECHA LÍMITE DE REVISIÓN':            'reviewDeadline',
+      'EMPRESA':                             'company',
+      'DOCUMENTO PRINCIPAL':                 'parentCode',
+      'UBICACIÓN':                           'location',
+      'RETENCIÓN ARCHIVO DE GESTIÓN (AÑOS)': 'retentionManagementYears',
+      'RETENCIÓN ARCHIVO CENTRAL (AÑOS)':    'retentionCentralYears',
+      'DISPOSICIÓN FINAL':                   'finalDisposition',
+      'FUNDAMENTO DE LA RETENCIÓN':          'retentionBasis',
+      'CARGO QUE ELABORA':                   'preparedBy',
+      'CARGO QUE APRUEBA':                   'approvedBy',
+      'CONTROL DE CAMBIOS':                  'changeLog',
+      'OBSERVACIONES':                       'notes',
+    },
+
+    /** Columnas con fecha (se llevan a ISO "YYYY-MM-DD"). */
+    DATE_PROPERTIES: ['effectiveDate', 'reviewDeadline'],
+
+    /**
+     * Convierte una fecha del Excel a ISO "YYYY-MM-DD". Acepta ISO (con o sin
+     * hora), "DD/MM/YYYY" y el número de serie de Excel (ej. 46000).
+     * Si no la reconoce, la retorna sin cambios.
+     * @param {string} value
+     * @returns {string}
+     */
+    toISODate(value) {
+      const text = String(value ?? '').trim();
+      if (!text) return '';
+      let match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (match) return `${match[1]}-${match[2]}-${match[3]}`;
+      match = text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (match) return `${match[3]}-${match[2].padStart(2, '0')}-${match[1].padStart(2, '0')}`;
+      if (/^\d+(\.\d+)?$/.test(text)) {
+        // Serie de Excel: días desde 1899-12-30
+        const date = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(text)) * 86400000);
+        return date.toISOString().slice(0, 10);
+      }
+      return text;
+    },
+
+    /**
+     * Normaliza el array de documentos del listado maestro.
+     * Los encabezados se comparan sin distinguir mayúsculas, tildes ni
+     * espacios repetidos; también se aceptan los nombres de propiedad internos.
+     * Reglas: ESTADO se lleva a su valor canónico; EMPRESA vacía = TODAS;
+     * BANDA DEL MAPA vacía se deduce del catálogo según la sigla.
      *
      * @param {Array<Object>} raw — respuesta cruda
      * @returns {Array<Object>} documentos normalizados
@@ -227,29 +300,38 @@ const Utils = (() => {
     normalizeDocuments(raw) {
       if (!Array.isArray(raw)) return [];
 
-      const field = (item, ...keys) => {
-        for (const key of keys) {
-          if (item[key] !== undefined && item[key] !== null) return String(item[key]).trim();
-        }
-        return '';
-      };
+      const headerKey = (text) => General.normalizeText(text).replace(/\s+/g, ' ');
+      const lookup = {};
+      Object.entries(Json.COLUMNS).forEach(([header, prop]) => {
+        lookup[headerKey(header)] = prop;
+        lookup[headerKey(prop)] = prop;
+      });
 
       return raw
-        .map((item, index) => ({
-          _id:              `doc-${index}`,
-          code:             field(item, 'Código', 'Codigo', 'code'),
-          documentName:     field(item, 'Nombre del documento', 'documentName'),
-          type:             field(item, 'Tipo', 'type'),
-          process:          field(item, 'Proceso', 'process'),
-          version:          field(item, 'Versión', 'Version', 'version'),
-          issueDate:        field(item, 'Fecha de emisión', 'issueDate'),
-          approvalDate:     field(item, 'Fecha de aprobación', 'approvalDate'),
-          owner:            field(item, 'Responsable', 'owner'),
-          status:           field(item, 'Estado', 'status'),
-          location:         field(item, 'Ubicación', 'Ubicacion', 'location'),
-          applicableAreas:  field(item, 'Usuarios o áreas aplicables', 'applicableAreas'),
-          retentionTime:    field(item, 'Tiempo de retención', 'retentionTime'),
-        }))
+        .map((item, index) => {
+          const doc = { _id: `doc-${index}` };
+          Object.values(Json.COLUMNS).forEach((prop) => { doc[prop] = ''; });
+
+          Object.entries(item || {}).forEach(([key, value]) => {
+            const prop = lookup[headerKey(key)];
+            if (prop && value !== undefined && value !== null) doc[prop] = String(value).trim();
+          });
+
+          Json.DATE_PROPERTIES.forEach((prop) => { doc[prop] = Json.toISODate(doc[prop]); });
+          doc.code       = doc.code.toUpperCase();
+          doc.type       = doc.type.toUpperCase();
+          doc.process    = doc.process.toUpperCase();
+          doc.parentCode = doc.parentCode.toUpperCase();
+          doc.status     = Status.normalize(doc.status);
+          doc.company    = doc.company.toUpperCase() || Catalog.COMPANY_ALL;
+          if (!doc.band) {
+            const band = Catalog.bandOf(doc.process);
+            doc.band = band ? band.code : '';
+          }
+          // Clave del documento: código + empresa (las variantes comparten código)
+          doc.key = `${doc.code}|${doc.company}`;
+          return doc;
+        })
         .filter((doc) => doc.code !== '' && doc.documentName !== '');
     },
 
@@ -305,6 +387,11 @@ const Utils = (() => {
         clearTimeout(timer);
         timer = setTimeout(() => fn.apply(this, args), wait);
       };
+    },
+
+    /** Texto en mayúsculas, sin tildes y sin espacios en los extremos (para comparar). */
+    normalizeText(text) {
+      return String(text ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
     },
 
     /** Escapa caracteres especiales de HTML para prevenir XSS en innerHTML. */
