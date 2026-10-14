@@ -105,3 +105,23 @@
    - `RETIRE`: ESTADO = ELIMINADO, FECHA LÍMITE vacía, CONTROL DE CAMBIOS = `AAAA-MM-DD · Retiro · motivo`; UBICACIÓN pasa al archivo en `_Obsoletos`.
 7. Estado APROBADA en la lista con el código definitivo; aviso al solicitante.
 8. **Aviso al proceso (Fase 13):** correo a los usuarios del proceso con el código, el nombre, la versión, el tipo de cambio y el enlace a la consulta filtrada (`?proceso=SIGLA`). Los destinatarios salen de una lista de SharePoint «Destinatarios por proceso» (SIGLA → correo o grupo), mantenida por SG; **no van en el código** porque el repositorio es público. Si un proceso no tiene destinatarios, se avisa solo a SG.
+
+## Hallazgos del entorno de prueba (2026-10-13)
+
+Se construyeron F1 y F3 en un entorno de prueba de Power Automate (sitio de SharePoint de prueba, listado inventado de 22 filas). No es el entorno definitivo y no reemplaza la validación de las Fases 14 y 15.
+
+- **Licencia:** «Cuando se recibe una solicitud HTTP» y «Respuesta» son **Premium**, y el inquilino de prueba no la tiene. F1 se guarda, pero no se activa. **F1 y F2 necesitan Premium** (va en la lista para TI). F3 solo usa conectores estándar: SharePoint, Aprobaciones, Outlook y Excel Online.
+- **F1, copia con disparador manual:** se ejecutó bien. Leyó las 22 filas con paginación, dejó vacía la UBICACIÓN de la fila RESERVADA y pasó de 20 a 19 ubicaciones. La lógica del contrato funciona; falta probar la parte HTTP y CORS con Premium.
+- **Método del disparador HTTP:** en la prueba se dejó **vacío** (acepta cualquier método) para que la verificación previa `OPTIONS` de CORS llegue al flujo. Esto se aparta del «método POST» del contrato. Se confirma en la Fase 14 con la llamada real, y entonces se ajusta este TRD.
+- **F3 de punta a punta, caso `NEW`:** una solicitud de prueba disparó el flujo. Pasó por las dos aprobaciones (contenido y SG) y obtuvo el siguiente consecutivo libre en versión 1. El archivo pasó de `_Pendientes` a `Procesos/<SIGLA>/` con el nombre «CÓDIGO Nombre V1.ext». Se agregó la fila en el listado, la solicitud quedó APROBADA con las dos respuestas guardadas (resultado · quién · cuándo · comentarios) y salió el aviso. Ejecución correcta en unos 7 minutos (casi todo es la espera de las aprobaciones).
+- **Diseño de F3 probado:**
+  - Ámbito «Aprobar y publicar» con variables para el resultado y las respuestas.
+  - Condición para cada aprobación.
+  - «Switch» por `TipoSolicitud`: en la prueba solo `NEW`; el resto queda como «fuera del alcance».
+  - Consecutivo: «Enumerar filas» (paginación 5000) → «Filtrar matriz» (empieza por `SIGLA-TIPO-` y tiene 3 partes) → «Seleccionar» `int(last(split(código,'-')))` → `formatNumber(max + 1, '000')`, o `001` si no hay ninguno.
+  - La carpeta y el movimiento se hacen con «Enviar una solicitud HTTP a SharePoint» (`folders/add` y `moveto` con `flags=1`).
+  - El camino de rechazo está construido, pero falta probarlo.
+- **Lista de solicitudes:** las columnas de prueba son `TipoSolicitud`, `Proceso`, `TipoDocumento`, `NombreDocumento`, `Empresa`, `Clasificacion`, `Descripcion`, `CargoElabora`, `CargoAprueba`, `AprobadorContenido`, `SolicitanteEmail`, `RutaArchivo`, `Extension`, `Estado`, `CodigoAsignado`, `RespuestaContenido` y `RespuestaSG`. Carpetas: `_Pendientes`, `_Rechazados`, `_Obsoletos` y `Procesos/<SIGLA>`.
+- **Diseñador nuevo de Power Automate:**
+  - El editor de expresiones rechaza `?[` al escribirlo. Hay que escribir `[` y el editor lo normaliza solo.
+  - En este inquilino no hay opción de pegar una acción copiada. Los ámbitos grandes se insertaron editando la definición del flujo con la API del entorno (PATCH de `definition` y `connectionReferences`), con la sesión del propio portal.
