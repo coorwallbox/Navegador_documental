@@ -1,7 +1,7 @@
 # Progreso — Resumen — Consulta_Documental
 
 > Cargar junto con [[Entregables/Web/Consulta_Documental/docs/01_INDEX|01_INDEX.md]] al iniciar cualquier tarea sobre este proyecto.
-> Última actualización: 2026-10-13.
+> Última actualización: 2026-10-15.
 
 ## Estado actual
 
@@ -60,6 +60,7 @@
 - Ajuste posterior al cierre de la Fase 11 (2026-10-13): el cargue pasa a la página independiente `cargue.html` (la consulta no la muestra ni la enlaza) y su configuración (URL de F2) a `config-cargue.js`, que solo carga esa página. QA 50/50 y regresión de las Fases 5–10 OK.
 - Ajuste posterior al cierre de la Fase 11 (2026-10-13), stepper: el cargue pasa a 5 pasos con el stepper de Design_System_Core (copia adaptada en `ds/`, con `reset()` agregado). QA 32/32 y regresión de las Fases 5–11 OK.
 - Ajuste posterior al cierre de la Fase 11 (2026-10-13), cobertura del listado: quinto caso «Retiro», reglas de F3 completas en `03_TRD.md`, anexos en versión 1, una solicitud por variante y notas fuera de OBSERVACIONES. QA 17/17 y regresión de las Fases 5–11 OK.
+- Publicación demo en GitHub Pages (2026-10-15, pedido y aprobado por el usuario; no cierra ninguna fase): se suben los 22 commits locales pendientes (lo publicado era el primer commit del 2026-09-01) solo como demostración; la versión completa va al espacio interno asignado tras la aprobación de las partes interesadas (Fase 14). Antes de subir: búsqueda contra 1061 códigos del listado y las plantillas en `HEAD` y en todos los commits pendientes → 0 códigos reales (solo coinciden encabezados de columna y un cargo genérico); sin URL de flujos, correos reales ni IDs del inquilino (los 2 GUID son constantes públicas de MSAL); `config.js` y `config-cargue.js` vacíos. Nuevo `Utils.DemoNotice`: franja «Versión de demostración» bajo el encabezado de la consulta y del cargue, solo en modo demo. QA headless: franja visible en ambas páginas a 1280 y 375 px sin desbordamiento; con URL de F1 simulada no aparece; 0 errores.
 
 ## Bloqueos
 

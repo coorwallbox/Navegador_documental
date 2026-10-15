@@ -704,6 +704,27 @@ const Utils = (() => {
   /* ==============================================================
      API PÚBLICA DEL MÓDULO
   ============================================================== */
-  return { Loader, Toast, Dialog, Status, Access, Format, Json, Data, Table, General };
+  /* ==============================================================
+     AVISO DE DEMOSTRACIÓN
+     Franja bajo el encabezado cuando la página corre sin URL de los
+     flujos (modo demo, como en GitHub Pages); el despliegue real no la muestra.
+  ============================================================== */
+  const DemoNotice = {
+
+    /** Inserta la franja si la página está en modo demo. Llamar desde el init de cada página. */
+    init(isDemo) {
+      if (!isDemo || document.querySelector('.aviso-demo')) return;
+      const header = document.querySelector('.encabezado');
+      if (!header) return;
+      const notice = document.createElement('div');
+      notice.className = 'aviso-demo';
+      notice.setAttribute('role', 'note');
+      notice.innerHTML = '<strong>Versión de demostración.</strong> Los documentos son datos de ejemplo inventados y '
+        + 'no hay conexión con el listado maestro ni con SharePoint.';
+      header.insertAdjacentElement('afterend', notice);
+    },
+  };
+
+  return { Loader, Toast, Dialog, Status, Access, Format, Json, Data, Table, General, DemoNotice };
 
 })();

@@ -67,6 +67,7 @@ const Upload = (() => {
   async function start() {
     Utils.Loader.init();
     Utils.Toast.init();
+    Utils.DemoNotice.init(Utils.Data.isDemo() || !CONFIG.URL_UPLOAD);  // listado o envío simulados
     let documents = [];
     Utils.Loader.show('Cargando el listado de documentos...');
     try {

@@ -61,6 +61,7 @@ const App = (() => {
     Utils.Loader.init();
     Utils.Toast.init();
     Utils.Dialog.init();
+    Utils.DemoNotice.init(CONFIG.MODO_DEMO);
     _bindEvents();
     await _loadDocuments();
     Utils.General.log('Aplicación inicializada · Modo demo:', CONFIG.MODO_DEMO);
